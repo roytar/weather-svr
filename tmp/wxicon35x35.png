@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:dc="http://purl.org/dc/terms/"
+	xmlns:foaf="http://xmlns.com/foaf/0.1/"
+	xmlns:og="http://ogp.me/ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+	xmlns:sioc="http://rdfs.org/sioc/ns#"
+	xmlns:sioct="http://rdfs.org/sioc/types#"
+	xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+	xmlns:owl="http://www.w3.org/2002/07/owl#"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rss="http://purl.org/rss/1.0/"
+	xmlns:site="http://public.wmo.int/en/ns#"
+	xmlns:fb="http://ogp.me/ns/fb#"
+	xmlns:article="http://ogp.me/ns/article#"
+	xmlns:book="http://ogp.me/ns/book#"
+	xmlns:profile="http://ogp.me/ns/profile#"
+	xmlns:video="http://ogp.me/ns/video#"
+	xmlns:product="http://ogp.me/ns/product#">
+    <head profile="http://www.w3.org/1999/xhtml/vocab">
+
+        <title>World Weather Information Service</title>
+		<!--[if IE 9]>
+		<meta http-equiv="x-ua-compatible" content="IE=EmulateIE9" >
+		<![endif]-->        
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=10; IE=9; IE=8; chrome=1"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<meta name="identifier-url" content="https://worldweather.wmo.int" />
+		<meta name="title" content="World Weather Information Service | WMO" />
+		<meta name="description" content="This global web site presents OFFICIAL weather forecasts and climatological information for selected cities supplied by National Meteorological &amp; Hydrological Services worldwide." />
+		<meta name="abstract" content="All" />
+		<meta name="keywords" content="WMO, WWIS, World Weather Information Service, global official forecasts, world weather forecasts, climatological information, present weather, sunrise, sunset" />
+		<meta name="author" content="WMO" />
+		<meta name="language" content="EN" />
+		<meta name="copyright" content="© 2018 WMO" />
+		<meta name="robots" content="All" />
+		<meta name="no-email-collection" content="http://www.unspam.com/noemailcollection/" />
+		<meta name="reply-to" content="webmaster@wmo.int" />
+		
+		<meta name='topic' content='scientific'/>
+		<meta name='coverage' content='Worldwide'/>
+		<meta name='distribution' content='Global'/>
+		<meta name='rating' content='General'/>
+		<meta name='revisit-after' content='1 day'/>
+		<meta name='HandheldFriendly' content='True'/>
+		<meta http-equiv='imagetoolbar' content='no'/>
+		<meta http-equiv='x-dns-prefetch-control' content='off'/>
+		
+		<link rel='help' title='FAQ' href='/en/note.html'/>  
+		<link rel="SHORTCUT ICON" type="image/x-icon" href="/images/wmo.ico"/>	
+        <link rel="stylesheet" type="text/css" href="/styles/jquery-ui.min.css" />
+        <link rel="stylesheet" type="text/css" href="/styles/rwd.css" charset="utf-8"/>
+				
+        <script type="text/javascript" src="/scripts/jquery.min.js"></script>
+        <script type="text/javascript" src="/scripts/jquery-ui.min.js"></script>
+        <script type="text/javascript" src="/scripts/jquery.ui.touch-punch.min.js"></script>
+		<script type="text/javascript" src="/scripts/moment-with-locales.min.js"></script>
+        <script type="text/javascript" src="/scripts/common.js"></script>
+        <script>
+		var areaObj = {"home":"Home","region":"Region","regions":"Regions","myfav":"Personalize","wtnew":"What's New","abtus": "About"};
+            selector_list += ' ,.system_content';
+
+            // adjust the width of the main content
+            function adjustWidth() {
+                var w1 = $(".page_pilot_content_bottom").width();
+                $(".page_pilot_content2").width(w1 - 20);
+                $('.page_pilot_subtitle').width(w1 - 40);
+            }
+
+            $(document).ready(function () {
+				$('.header-menu-right').css('display','none');
+				//site map
+					ajax_get_region_info_map('en');
+					ajax_get_member_info_sitemap('en');
+					generateSiteMap('regions');
+				//site map
+                $('.social-network-small').html($('.social-network').clone().contents());
+
+                // header slide down menu for tablet and mobile
+                $('.header-menu-btn a').click(function () {
+                    if ($('.header-menu').is(':visible')) {
+                        $('.header-menu').slideUp(500, function () {
+                            $('.header-menu-btn a').children('img').attr('src', '../images/arrow_down.png');
+                        });
+                    } else {
+                        $('.header-menu').slideDown(500, function () {
+                            $('.header-menu-btn a').children('img').attr('src', '../images/arrow_up.png');
+                        });
+                    }
+                });
+
+                // main slide down menu for tablet and mobile
+                $('.main-menu-btn').click(function () {
+                    if ($('.mainmenu').is(':visible')) {
+                        $('.mainmenu').slideUp(500, function () {});
+                    } else {
+                        $('.mainmenu').slideDown(500, function () {});
+                    }
+                });
+
+                // slide up / slide down control
+                $('.intro-arrow-btn').click(function () {
+                    $intro_arrow_btn = $(this);
+                    $page_pilot_content = $(this).parent().prev();
+                    $page_pilot_subtitle = $(this).prev();
+                    if ($page_pilot_content.is(':visible')) {
+                        $page_pilot_subtitle.css('display', 'inline-block');
+                        $intro_arrow_btn.css('margin-top', '10px');
+                        $page_pilot_content.slideUp(500, function () {
+                            $intro_arrow_btn.children('a').children('img').attr('src', '../images/arrow_down.png');
+                        });
+                    } else {
+                        $page_pilot_subtitle.css('display', 'none');
+                        $intro_arrow_btn.css('margin-top', '0px');
+                        $page_pilot_content.slideDown(500, function () {
+                            $intro_arrow_btn.children('a').children('img').attr('src', '../images/arrow_up.png');
+                        });
+                    }
+                    adjustWidth();
+                });
+
+                if (isCookieEnabled && getCookie('fontsize_e') != null)
+                    changeFontSize(getCookie('fontsize_e'));
+                else {
+					var fsv = '0';
+                    changeFontSize(fsv);
+                }
+
+                adjustWidth();
+            });
+
+            $(window).resize(function () {
+                adjustWidth();
+            });
+
+        </script>
+    </head>
+    <body>
+        <div class="wrapper">
+
+            <script>
+$( document ).ready(function() {
+	$( ".prettyfied-select-box .arrow-up" ).hide();
+	change_current_lang_msg();
+});
+
+
+function change_current_lang_msg(){
+			
+				if(pageLang=='ar'){
+					$('.prettyfied-select-box .current_lang').html('‏العربية‏');
+				}
+				
+				if(pageLang=='en'){
+				$('.prettyfied-select-box .current_lang').html('English');
+				}
+				
+				if(pageLang=='tc'){
+					$('.prettyfied-select-box .current_lang').html('繁體中文');
+				}
+				
+				if(pageLang=='zh'){
+					$('.prettyfied-select-box .current_lang').html('简体中文');
+				}
+				
+				if(pageLang=='fr'){
+					$('.prettyfied-select-box .current_lang').html('Français');
+				}
+				
+				if(pageLang=='de'){
+					$('.prettyfied-select-box .current_lang').html('Deutsch');
+				}
+				
+				if(pageLang=='it'){
+					$('.prettyfied-select-box .current_lang').html('Italiano');
+				}
+				
+				if(pageLang=='kr'){
+					$('.prettyfied-select-box .current_lang').html('한국어');
+				}
+				
+				if(pageLang=='pl'){
+					$('.prettyfied-select-box .current_lang').html('Polski');
+				}
+				
+				if(pageLang=='pt'){
+					$('.prettyfied-select-box .current_lang').html('Português');
+					if(window.innerWidth < 800){
+					$('.website-t1').css('font-size','16px');
+					}
+				}
+				
+				if(pageLang=='ru'){
+					$('.prettyfied-select-box .current_lang').html('Русский');
+				}
+				
+				if(pageLang=='es'){
+					$('.prettyfied-select-box .current_lang').html('Español');
+				}
+}
+
+</script>
+<div class="row header-menu">  
+    <div class="col-12 social-network">
+        <a class="sn1" href="http://www.facebook.com/pages/World-Meteorological-Organization/71741701887" target="_blank" rel="noopener noreferrer" title="Facebook"></a>
+        <a class="sn2" href="http://twitter.com/WMO" target="_blank" rel="noopener noreferrer" title="Twitter"></a>
+        <a class="sn3" href="https://www.flickr.com/photos/worldmeteorologicalorganization/sets/" target="_blank" rel="noopener noreferrer" title="Flickr"></a>
+        <a class="sn4" href="https://www.instagram.com/wmo_omm/" target="_blank" rel="noopener noreferrer" title="Instagram"></a>
+        <a class="sn5" href="https://www.youtube.com/worldmetorg" target="_blank" rel="noopener noreferrer" title="YouTube"></a>
+        <a class="sn6" href="https://vimeo.com/wmo" target="_blank" rel="noopener noreferrer" title="Vimeo"></a>
+    </div>
+</div>
+
+<div class="row header_container" id="header_main">
+
+ 
+        <div class="header-menu-right">
+
+			<div id="lang_link" class="lang_menu">
+                           <div id="lang_link1">
+					<div class="prettyfied-select-box"><a><span class="current_lang">English</span><span class="arrow-down" alt="Expand"></span><span class="arrow-up" alt="Collapse"></span></a></div>
+					<script type="text/javascript">document.write("<script type='text/javascript' src='"+ location.protocol +"//worldweather.wmo.int/scripts/domain1.js' charset='utf-8'><\/scr" + "ipt>");</script>
+					<script type="text/javascript">
+
+
+					$('.prettyfied-select-box a').click(function() {
+							
+						if (!$('#lang_link1 ul').is(':visible')) {
+							$( ".arrow-down" ).hide();
+							$( ".arrow-up" ).show();
+							$('#lang_link1 ul').slideDown(500, function() {});
+						} else {
+							$('#lang_link1 ul').slideUp(500, function() {});
+							$( ".arrow-down" ).show();
+							$( ".arrow-up" ).hide();
+						}
+					});
+					</script>
+				</div>
+				<!--<script type="text/javascript">document.write("<script type='text/javascript' src='"+ location.protocol +"//worldweather.wmo.int/scripts/domain.js' charset='utf-8'><\/scr" + "ipt>");</script>-->	
+            			</div>
+        </div>
+		
+	
+	<table>
+	<tr>
+		<td>
+		<div class="header_m_main_menu">
+		 	<a class="main-menu-btn" href="javascript:void(0);" title="Main menu">
+                <span class="spanline"></span>
+                <span class="spanline"></span>
+                <span class="spanline"></span>
+            </a>
+		
+		</div>
+	
+		</td>
+		
+		<td>
+		<div class="logo-area">
+		<img style="height:77px;" src="../images/logo_wmo.png" alt="" />
+		</div>
+	
+		</td>
+		
+		<td>
+			<div class="head_img_container">
+			<div class="header_msg">	
+			World Meteorological Organization			</div>	
+			
+			<div class="header_msg_small">
+			Weather · Climate · Water			</div>
+			</div>	
+		</td>
+		
+		
+		<td class="header_banner">
+			<span class="website-t">
+			 			<a href="/en/home.html">	<span class="website-t1">World Weather Information Service</span><br /><span class="website-t2">Official Forecasts</span></a>
+			</span>
+		</td>
+		
+		<td class="social_menu">
+			<div class="row header-menu-btn">
+			<a href="javascript:void(0);"><img src="/images/arrow_down.png" alt="Option menu"></a>
+			</div>
+		</td>
+
+	</tr>
+
+	</table>
+		
+	
+</div>
+
+<div class="row main-menu">
+<a name="site_top"></a>
+    <ul class="mainmenu">
+
+        <li><a href="/en/home.html" onclick="reset_map_cookie();">Home</a></li>
+
+        <li><a href="myfavourites.html">Personalize</a></li>
+
+        <li><a href="whatsnew.html">What's New</a></li>
+
+        <li>
+            <a href="javascript:void(0);" onclick="triggerSubMenu('menu1');">Links</a>
+            <div style="position:relative;">
+                <div class="submenu" id="menu1">
+                    <ul>
+                       
+                        <li><a href="http://dcpc.worldweather.org/" target="_blank" rel="noopener noreferrer">Advanced Search</a></li>
+                        <li><a href="https://severeweather.wmo.int/TCFW/" target="_blank" rel="noopener noreferrer">Tropical Cyclone Forecaster Website</a></li>
+                        <li><a href="http://wrd.mgm.gov.tr/default.aspx?l=en" target="_blank" rel="noopener noreferrer">WMO Radar Database</a></li>
+                        <li><a href="http://www.droughtmanagement.info/" target="_blank" rel="noopener noreferrer">Integrated Drought Management Programme</a></li>
+                        <li><a href="http://www.wamis.org/" target="_blank" rel="noopener noreferrer">World AgroMeteorological Information Service</a></li>
+                        <li><a href="http://wmo.asu.edu/" target="_blank" rel="noopener noreferrer">World Weather / Climate Extremes Archive</a></li>
+                        <li><a href="https://www.wmo.int/cpdb/" target="_blank" rel="noopener noreferrer">WMO Country Profile Database</a></li>
+						<li><a href="https://alertingauthority.wmo.int/" target="_blank" rel="noopener noreferrer">Register of Alerting Authorities</a></li>
+                    </ul>
+                </div>
+            </div>
+		</li>
+		
+        
+		
+		<li><a href="https://severeweather.wmo.int/" target="_blank" rel="noopener noreferrer">Severe Weather</a></li>
+		<li><a href="https://cloudatlas.wmo.int/en/home.html" target="_blank" rel="noopener noreferrer">Cloud Atlas</a></li>
+		<li>
+            <a href="javascript:void(0);" onclick="triggerSubMenu('menu2');">About</a>
+            <div style="position:relative;">
+                <div class="submenu" id="menu2">
+                    <ul>
+                        <li><a href="pilot.html">About this website</a></li>
+                        <li><a href="members.html">Participating Members</a></li>
+                        <li><a href="wxicons.html">Weather Icons</a></li>
+                       
+                    </ul>
+                </div>
+            </div>
+        </li>
+		<li><a href="apps.html">Apps</a></li>
+	
+        <li>
+            <a href="javascript:void(0);" onclick="triggerSubMenu('menu3');">Support</a>
+            <div style="position:relative;">
+                <div class="submenu" id="menu3">
+                    <ul>
+                        <li><a href="settings.html">Settings</a></li>					
+                        <li><a href="note.html">Notes to User</a></li>
+						                        <li><a href="dataguide.html">Download</a></li>
+												<li><a href="submitfc.html">Notes to WMO Members</a></li>						
+                    </ul>
+                </div>
+            </div>
+		</li>
+		
+    </ul>
+    <div class="social-network-small"></div>
+
+</div>
+			
+         <div class="row">
+                <h1 class="subtitle_top">World Weather Information Service (WWIS) Website</h1>
+            </div>
+
+
+		<div class="row col-12 col-m-12 system_content intro">
+                <div class="page_area">
+					<div class="system_content">
+									<p>The page you are looking for might have been removed, had its name changed or is temporarily unavailable.</p>
+									<p>Make sure you have typed the correct page address in the address bar.</p>
+									<p>We regret the inconvenience and thank you for your understanding.</p>
+									<p>Some options:</p>
+									<ul class="ica_website_ul">
+										<li>To go back to our Homepage <a href='/en/home.html'>please click here</a></li>
+										<li>To report a broken link, please <a href='mailto:webmaster@worldweather.org'>contact us</a></li>
+										<!-- li>or try searching in the search box</li -->
+									</ul>
+								</div>
+                </div>		
+          </div>
+
+
+            
+
+
+<div class="row footer-area">
+<div class="col-12 host-info">
+		This website is operated on behalf of WMO by <a href="http://www.hko.gov.hk" target="_blank" rel="noopener noreferrer">Hong Kong Observatory</a> of Hong Kong, China.</div>
+	
+	<div class="col-12 site_map_footer">
+		<div class="row">
+			<div class="row col-12 col-m-12 h1">	
+				<div class="col-4 col-m-4 col-s-12">
+					<div class="footer_title">Home</div>
+					<div class="sitemap_content">
+						<ul class="sitemap_item">
+							<li><a href="home.html">Home</a></li>
+							<li><a href="apps.html">Apps</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="col-4 col-m-4 col-s-12">
+					<div class="footer_title">Personalize</div>
+					<div class="sitemap_content">
+						<ul class="sitemap_item">
+							<li><a href="myfavourites.html">Personalize</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="col-4 col-m-4 col-s-12">
+					<div class="footer_title">What's New</div>
+					<div class="sitemap_content">
+						<ul class="sitemap_item">
+							<li><a href="whatsnew.html">What's New</a></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<div class="row col-12 col-m-12">	
+				<div class="col-4 col-m-4 col-s-12">
+					<div class="footer_title">Links</div>
+					<div class="sitemap_content">
+						<ul class="sitemap_item">
+							<li><a href="https://severeweather.wmo.int/" target="_blank" rel="noopener noreferrer">Severe Weather</a></li>
+							<li><a href="http://dcpc.worldweather.org/" target="_blank" rel="noopener noreferrer">Advanced Search</a></li>
+							<li><a href="https://severeweather.wmo.int/TCFW/" target="_blank" rel="noopener noreferrer">Tropical Cyclone Forecaster Website</a></li>
+							<li><a href="http://wrd.mgm.gov.tr/default.aspx?l=en" target="_blank" rel="noopener noreferrer">WMO Radar Database</a></li>
+							<li><a href="http://www.droughtmanagement.info/" target="_blank" rel="noopener noreferrer">Integrated Drought Management Programme</a></li>
+							<li><a href="http://www.wamis.org/" target="_blank" rel="noopener noreferrer">World AgroMeteorological Information Service</a></li>
+							<li><a href="http://wmo.asu.edu/" target="_blank" rel="noopener noreferrer">World Weather / Climate Extremes Archive</a></li>
+							<li><a href="https://www.wmo.int/cpdb/" target="_blank" rel="noopener noreferrer">WMO Country Profile Database</a></li>
+							<li><a href="https://cloudatlas.wmo.int/en/home.html" target="_blank" rel="noopener noreferrer">Cloud Atlas</a></li>							
+							<li><a href="https://alertingauthority.wmo.int/" target="_blank" rel="noopener noreferrer">Register of Alerting Authorities</a></li>
+						</ul>
+					</div>
+				</div>
+				<div class="col-4 col-m-4 col-s-12">
+					<div class="footer_title">About</div>
+					<div class="sitemap_content">
+						<ul class="sitemap_item">
+							<li><a href="pilot.html">About this website</a></li>
+							<li><a href="members.html">Participating Members</a></li>
+							<li><a href="wxicons.html">Weather Icons</a></li>
+							
+						</ul>
+					</div>
+				</div>
+				<div class="col-4 col-m-4 col-s-12">
+					<div class="footer_title">Support</div>
+					<div class="sitemap_content">
+						<ul class="sitemap_item">
+							<li><a href="mailto:webmaster@worldweather.org">Contact Us</a></li>
+							<li><a href="note.html">Notes to User</a></li>
+							<li><a href="settings.html">Settings</a></li>
+														<li><a href="dataguide.html">Download</a></li>
+													</ul>
+					</div>
+				</div>
+			</div>
+			<div class="row col-12 col-m-12">
+				<div class="col-12 col-m-12 col-s-12">
+					<div id="rccSiteMap"></div>
+				</div>
+			</div>
+		</div>
+				<div class="col-9 footer-left">
+			&#169; 2020 | <a href="/en/privacy.html">Privacy Policy</a> | <a href="mailto:webmaster@worldweather.org">Contact</a> | <a href="/en/disclaimer.html">Disclaimer</a> | <a href="/en/note.html">Notes to User</a> | <a href="http://www.wmo.int/pages/prog/amp/pwsp/" target="_blank" rel="noopener noreferrer">WMO Extranet</a> | <a class="wcag-logo" href="http://www.w3.org/WAI/WCAG2AA-Conformance" target="_blank" rel="noopener noreferrer" title="Level Double-A conformance, W3C WAI Web Content Accessibility Guidelines 2.0"></a>
+		</div>
+		
+		<div class="col-3 footer-right">
+						<div id="footer_last_update"></div>
+			<script type="text/javascript">
+				$('#footer_last_update').html(moment('2024-01-29').locale('en').format('[Updated on ]ll'));
+			</script>
+		</div>
+		
+	</div>
+	
+
+</div>
+<a id="floating_back_to_top" style="display: block;" href="#site_top">Back to top</a>			
+        </div>
+    </body>
+</html>

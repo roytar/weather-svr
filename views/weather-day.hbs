@@ -1,0 +1,185 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>One-Day Weather</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --subtle: #4b5563;
+        --line: #dbe4ee;
+        --accent: #0f766e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 2rem 1rem;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top left, #e8f9f6, var(--bg) 45%);
+        color: var(--ink);
+      }
+
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
+      }
+
+      .header {
+        padding: 1.2rem 1.4rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .day {
+        font-size: 1.35rem;
+        font-weight: 700;
+      }
+
+      .meta {
+        margin-top: 0.3rem;
+        color: var(--subtle);
+        font-size: 0.95rem;
+      }
+
+      .summary {
+        margin-top: 0.5rem;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+      }
+
+      .weather-icon {
+        width: 50px;
+        height: 50px;
+        display: inline-block;
+        flex: 0 0 auto;
+      }
+
+      .hour-icon {
+        width: 28px;
+        height: 28px;
+        display: block;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      thead th {
+        text-align: left;
+        font-size: 0.82rem;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--subtle);
+        background: #f9fbfd;
+      }
+
+      th,
+      td {
+        padding: 0.75rem 0.85rem;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      tbody tr:hover {
+        background: #f7fafc;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      @media (max-width: 720px) {
+        .header {
+          padding: 1rem;
+        }
+
+        th,
+        td {
+          padding: 0.6rem 0.5rem;
+          font-size: 0.86rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <header class="header">
+          <div class="day">{{dayDate}}</div>
+          <div class="meta">{{location}}
+            |
+            {{timezone}}
+            | RH:
+            {{relativeHumidity}}%</div>
+          <div class="summary">
+            <img
+              class="weather-icon"
+              src="{{iconUrl}}"
+              alt="{{summary}}"
+              title="{{summary}} (code: {{iconCode}})"
+              width="50"
+              height="50"
+            />
+            <span>{{summary}}</span>
+          </div>
+        </header>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Icon</th>
+              <th>Hour</th>
+              <th>Temp (F)</th>
+              <th>Wind (mph)</th>
+              <th>Direction</th>
+              <th>Precip (in)</th>
+              <th>Rain (in)</th>
+              <th>Snow (in)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each hourlyRows}}
+              <tr>
+                <td>
+                  <img
+                    class="hour-icon"
+                    src="{{this.iconUrl}}"
+                    alt="{{this.iconSummary}}"
+                    title="{{this.iconSummary}} (code: {{this.iconCode}})"
+                    width="28"
+                    height="28"
+                  />
+                </td>
+                <td>{{this.hour}}</td>
+                <td>{{this.temperature}}</td>
+                <td>{{this.windSpeed}}</td>
+                <td>{{this.windDirectionCardinal}}
+                  ({{this.windDirectionDegrees}}&deg;)</td>
+                <td>{{this.precipitation}}</td>
+                <td>{{this.rain}}</td>
+                <td>{{this.snow}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

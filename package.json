@@ -2,10 +2,11 @@
   "name": "weather-svr",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "dotenv -- nodemon",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
     "test": "jest",
     "test:watch": "jest --watchAll",
     "lint": "eslint"
@@ -40,8 +41,13 @@
     "typescript-eslint": "^8.57.1"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/static": "^9.0.0",
+    "@fastify/view": "^11.1.1",
     "@types/node-geocoder": "^4.2.6",
+    "fastify": "^5.8.4",
     "geo-tz": "^8.1.6",
+    "handlebars": "^4.7.8",
     "node-geocoder": "^4.4.1",
     "openmeteo": "^1.2.3"
   }

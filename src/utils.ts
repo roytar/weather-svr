@@ -21,37 +21,64 @@ export function divide(a: number, b: number): number {
 }
 
 // WMO Weather interpretation codes (WW) decoder
-// Provides a short description, long description, and the openweathermap.org icon designation
-const wmoToMapIcon: { [key: string]: [string, string, string] } = {
-  "0": ["Clear", "Clear sky.", "01"],
-  "1": ["MainlyClear", "Mainly clear sky.", "02"],
-  "2": ["PartlyCloudy", "Partly cloudy sky.", "02"],
-  "3": ["Overcast", "Overcast sky.", "03"],
-  "45": ["Fog", "Foggy.", "50"],
-  "48": ["Fog", "Depositing rime fog.", "50"],
-  "51": ["Drizzle", "Light drizzle.", "10"],
-  "53": ["Drizzle", "Moderate drizzle.", "09"],
-  "55": ["Drizzle", "Dense drizzle.", "09"],
-  "56": ["FreezingDrizzle", "Light freezing drizzle.", "09"],
-  "57": ["FreezingDrizzle", "Dense freezing drizzle.", "09"],
-  "61": ["Rain", "Slight rain.", "10"],
-  "63": ["Rain", "Moderate rain.", "09"],
-  "65": ["Rain", "Heavy rain.", "09"],
-  "66": ["FreezingRain", "Light freezing rain.", "09"],
-  "67": ["FreezingRain", "Heavy freezing rain.", "09"],
-  "71": ["Snow", "Slight snow fall.", "13"],
-  "73": ["Snow", "Moderate snow fall.", "13"],
-  "75": ["Snow", "Heavy snow fall.", "13"],
-  "77": ["Snow", "Snow grains falling.", "13"],
-  "80": ["Rain", "Slight rain showers.", "10"],
-  "81": ["Rain", "Moderate rain showers.", "09"],
-  "82": ["Rain", "Violent rain showers.", "09"],
-  "85": ["Snow", "Slight snow showers.", "13"],
-  "86": ["Snow", "Heavy snow showers.", "13"],
-  "95": ["Thunderstorm", "Thunderstorm.", "07"],
-  "96": ["Thunderstorm", "Thunderstorm with slight hail.", "07"],
-  "99": ["Thunderstorm", "Thunderstorm with heavy hail.", "07"],
+// Provides a short description, long description, openweathermap icon,
+// and WMO World Weather icon ID (https://worldweather.wmo.int/en/wxicons.html).
+const wmoToMapIcon: { [key: string]: [string, string, string, string] } = {
+  "0": ["Clear", "Clear sky.", "01", "24"],
+  "1": ["MainlyClear", "Mainly clear sky.", "02", "21"],
+  "2": ["PartlyCloudy", "Partly cloudy sky.", "02", "22"],
+  "3": ["Overcast", "Overcast sky.", "03", "20"],
+  "45": ["Fog", "Foggy.", "50", "16"],
+  "48": ["Fog", "Depositing rime fog.", "50", "16"],
+  "51": ["Drizzle", "Light drizzle.", "10", "15"],
+  "53": ["Drizzle", "Moderate drizzle.", "09", "15"],
+  "55": ["Drizzle", "Dense drizzle.", "09", "14"],
+  "56": ["FreezingDrizzle", "Light freezing drizzle.", "09", "13"],
+  "57": ["FreezingDrizzle", "Dense freezing drizzle.", "09", "13"],
+  "61": ["Rain", "Slight rain.", "10", "15"],
+  "63": ["Rain", "Moderate rain.", "09", "14"],
+  "65": ["Rain", "Heavy rain.", "09", "14"],
+  "66": ["FreezingRain", "Light freezing rain.", "09", "13"],
+  "67": ["FreezingRain", "Heavy freezing rain.", "09", "13"],
+  "71": ["Snow", "Slight snow fall.", "13", "7"],
+  "73": ["Snow", "Moderate snow fall.", "13", "6"],
+  "75": ["Snow", "Heavy snow fall.", "13", "6"],
+  "77": ["Snow", "Snow grains falling.", "13", "6"],
+  "80": ["Rain", "Slight rain showers.", "10", "12"],
+  "81": ["Rain", "Moderate rain showers.", "09", "10"],
+  "82": ["Rain", "Violent rain showers.", "09", "9"],
+  "85": ["Snow", "Slight snow showers.", "13", "5"],
+  "86": ["Snow", "Heavy snow showers.", "13", "5"],
+  "95": ["Thunderstorm", "Thunderstorm.", "11", "2"],
+  "96": ["Thunderstorm", "Thunderstorm with slight hail.", "11", "3"],
+  "99": ["Thunderstorm", "Thunderstorm with heavy hail.", "11", "3"],
 };
-export function wmoToMapIconFunc(wmoCode: string): [string, string, string] {
-  return wmoToMapIcon[wmoCode] || ["Unknown", "Unknown weather code.", "na"];
+export function wmoToMapIconFunc(
+  wmoCode: string,
+): [string, string, string, string] {
+  return (
+    wmoToMapIcon[wmoCode] || ["Unknown", "Unknown weather code.", "na", "23"]
+  );
+}
+
+export function openWeatherIconUrl(iconCode: string, isDay: boolean): string {
+  const suffix = isDay ? "d" : "n";
+  return `/assets/weather-icons/${iconCode}${suffix}@2x.png`;
+}
+
+export function wmoToOpenWeatherIcon(
+  wmoCode: string | number,
+  isDay: boolean,
+): { summary: string; iconCode: string; iconUrl: string } {
+  const weatherInfo = wmoToMapIconFunc(
+    String(Math.round(Number(wmoCode) || 0)),
+  );
+  const summary = weatherInfo[1];
+  const iconCode = weatherInfo[2] === "na" ? "03" : weatherInfo[2];
+
+  return {
+    summary,
+    iconCode,
+    iconUrl: openWeatherIconUrl(iconCode, isDay),
+  };
 }
