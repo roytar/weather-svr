@@ -193,7 +193,9 @@ export async function weatherRoutes(fastify: FastifyInstance) {
       const { address } = request.query as { address: string };
 
       try {
-        const result = await weatherService.getWeatherForAddress(address);
+        const result = await weatherService.getWeatherForAddress(address, {
+          forecastDays: 7,
+        });
         const formattedOutput = weatherService.formatWeatherOutput(
           result.location,
           result.weather,
@@ -208,7 +210,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // GET /weather/day?address=<address> - Returns one-day weather HTML
+  // GET /weather/day?address=<address>&date=<YYYY-MM-DD> - Returns one-day weather HTML (date optional)
   fastify.get(
     "/weather/day",
     {
@@ -217,16 +219,36 @@ export async function weatherRoutes(fastify: FastifyInstance) {
           type: "object",
           properties: {
             address: { type: "string" },
+            date: { type: "string" },
           },
           required: ["address"],
         },
       },
     },
     async (request, reply) => {
-      const { address } = request.query as { address: string };
+      const { address, date } = request.query as {
+        address: string;
+        date?: string;
+      };
+
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return reply
+          .code(400)
+          .send({ error: "Invalid date format. Use YYYY-MM-DD" });
+      }
 
       try {
-        const result = await weatherService.getWeatherForAddress(address);
+        const result = await weatherService.getWeatherForAddress(
+          address,
+          date
+            ? {
+                startDate: date,
+                endDate: date,
+              }
+            : {
+                forecastDays: 1,
+              },
+        );
         const timezone = Array.isArray(result.timezone)
           ? result.timezone[0]
           : result.timezone;
@@ -234,24 +256,36 @@ export async function weatherRoutes(fastify: FastifyInstance) {
         const now = new Date();
         const todayKey = dateKeyInTimeZone(now, timezone);
         const nowHourKey = hourKeyInTimeZone(now, timezone);
-        const dailyIndex = result.weather.daily.time.findIndex(
+        const selectedDayKey = date ?? todayKey;
+        const selectedDailyIndex = result.weather.daily.time.findIndex(
+          (day) => dateKeyInTimeZone(day, timezone) === selectedDayKey,
+        );
+        const selectedDayIndex =
+          selectedDailyIndex >= 0 ? selectedDailyIndex : 0;
+        const todayDailyIndex = result.weather.daily.time.findIndex(
           (day) => dateKeyInTimeZone(day, timezone) === todayKey,
         );
-        const selectedDayIndex = dailyIndex >= 0 ? dailyIndex : 0;
 
         const selectedDayDate = result.weather.daily.time[selectedDayIndex];
-        const selectedDayKey = dateKeyInTimeZone(selectedDayDate, timezone);
-        const currentDayIndex = dailyIndex >= 0 ? dailyIndex : 0;
+        const currentDayIndex = todayDailyIndex >= 0 ? todayDailyIndex : 0;
         const currentSunrise = result.weather.daily.sunrise[currentDayIndex];
         const currentSunset = result.weather.daily.sunset[currentDayIndex];
         const isCurrentDaytime =
           currentSunrise && currentSunset
             ? now >= currentSunrise && now <= currentSunset
             : true;
-        const currentIcon = wmoToOpenWeatherIcon(
-          result.weather.current.weather_code,
-          isCurrentDaytime,
-        );
+
+        // Use forecast weather if a specific date is provided and it's not today
+        const isViewingForecast = selectedDayKey !== todayKey;
+        const headerIcon = isViewingForecast
+          ? wmoToOpenWeatherIcon(
+              result.weather.daily.weather_code?.[selectedDayIndex] ?? 0,
+              true,
+            )
+          : wmoToOpenWeatherIcon(
+              result.weather.current.weather_code,
+              isCurrentDaytime,
+            );
         const locationText =
           result.location.formattedAddress ||
           [
@@ -333,9 +367,9 @@ export async function weatherRoutes(fastify: FastifyInstance) {
             day: "numeric",
           }),
           location: locationText,
-          summary: currentIcon.summary,
-          iconCode: currentIcon.iconCode,
-          iconUrl: currentIcon.iconUrl,
+          summary: headerIcon.summary,
+          iconCode: headerIcon.iconCode,
+          iconUrl: headerIcon.iconUrl,
           relativeHumidity: Math.round(
             result.weather.current.relative_humidity_2m,
           ),

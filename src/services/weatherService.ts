@@ -14,6 +14,12 @@ const geocoder = nodeGeocoder({
   formatter: null,
 });
 
+type WeatherRangeOptions = {
+  forecastDays?: number;
+  startDate?: string;
+  endDate?: string;
+};
+
 // Helper function to form time ranges
 const range = (start: number, stop: number, step: number) =>
   Array.from({ length: (stop - start) / step }, (_, i) => start + i * step);
@@ -50,6 +56,7 @@ export class WeatherService {
   async getWeatherData(
     latitude: number,
     longitude: number,
+    options: WeatherRangeOptions = {},
   ): Promise<WeatherData> {
     const tzTimezone = find(latitude, longitude);
 
@@ -87,6 +94,18 @@ export class WeatherService {
         "wind_gusts_10m_max",
       ],
     };
+
+    if (options.startDate && options.endDate) {
+      (
+        params as typeof params & { start_date: string; end_date: string }
+      ).start_date = options.startDate;
+      (
+        params as typeof params & { start_date: string; end_date: string }
+      ).end_date = options.endDate;
+    } else if (options.forecastDays && options.forecastDays > 0) {
+      (params as typeof params & { forecast_days: number }).forecast_days =
+        options.forecastDays;
+    }
 
     const url = "https://api.open-meteo.com/v1/forecast";
 
@@ -241,11 +260,15 @@ export class WeatherService {
     return output;
   }
 
-  async getWeatherForAddress(address: string): Promise<WeatherResponse> {
+  async getWeatherForAddress(
+    address: string,
+    options: WeatherRangeOptions = {},
+  ): Promise<WeatherResponse> {
     const location = await this.geocodeAddress(address);
     const weatherData = await this.getWeatherData(
       location.latitude,
       location.longitude,
+      options,
     );
 
     // Get timezone from the weather response

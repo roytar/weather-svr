@@ -6,8 +6,29 @@ import path from "node:path";
 import { weatherRoutes, healthRoutes } from "./routes/index.js";
 import { cors } from "./plugins/index.js";
 
+function localIsoTimestamp(date: Date): string {
+  const pad = (value: number, size = 2) => String(value).padStart(size, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  const millis = pad(date.getMilliseconds(), 3);
+
+  const offsetMinutes = -date.getTimezoneOffset();
+  const offsetSign = offsetMinutes >= 0 ? "+" : "-";
+  const absOffsetMinutes = Math.abs(offsetMinutes);
+  const offsetHoursPart = pad(Math.floor(absOffsetMinutes / 60));
+  const offsetMinutesPart = pad(absOffsetMinutes % 60);
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${millis}${offsetSign}${offsetHoursPart}:${offsetMinutesPart}`;
+}
+
 const app = Fastify({
-  logger: true,
+  logger: {
+    timestamp: () => `,"time":"${localIsoTimestamp(new Date())}"`,
+  },
 });
 
 // Register plugins
