@@ -71,6 +71,17 @@
         font-weight: 700;
       }
 
+      .date-status-badge {
+        color: var(--accent);
+        font-size: 0.85rem;
+        margin-left: 0.5rem;
+        font-weight: 500;
+      }
+
+      .date-status-badge:empty {
+        display: none;
+      }
+
       .header-location {
         font-size: 0.88rem;
         color: var(--subtle);
@@ -477,17 +488,7 @@
             <div class="header-top-left">
               <div class="day">
                 {{dayDate}}
-                {{#if isHistoric}}
-                  <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Historic</span>
-                {{else}}
-                  {{#if isForecast}}
-                    <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Forecast</span>
-                  {{else}}
-                    {{#if isViewingForecast}}
-                      <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Forecast</span>
-                    {{/if}}
-                  {{/if}}
-                {{/if}}
+                <span id="dateStatusBadge" class="date-status-badge">{{#if isHistoric}}Historic{{else}}{{#if isForecast}}Forecast{{/if}}{{/if}}</span>
               </div>
               {{#unless isViewingForecast}}
                 <div class="current-time">{{currentTime}}</div>
@@ -827,8 +828,20 @@
 
       // Initialize date input
       const urlDate = getDateFromURL();
-      const displayDate = urlDate || formatDate(new Date());
+      const todayKey = formatDate(new Date());
+      const displayDate = urlDate || todayKey;
       dateInput.value = displayDate;
+
+      const dateStatusBadge = document.getElementById('dateStatusBadge');
+      if (dateStatusBadge) {
+        if (!urlDate || urlDate === todayKey) {
+          dateStatusBadge.textContent = '';
+        } else if (urlDate < todayKey) {
+          dateStatusBadge.textContent = 'Historic';
+        } else {
+          dateStatusBadge.textContent = 'Forecast';
+        }
+      }
     })();
   </script>
   </body>
