@@ -101,7 +101,7 @@ export async function weatherRoutes(fastify) {
             const today = new Date();
             today.setUTCHours(0, 0, 0, 0);
             const maxFutureDate = new Date(today);
-            maxFutureDate.setUTCDate(maxFutureDate.getUTCDate() + 16);
+            maxFutureDate.setUTCDate(maxFutureDate.getUTCDate() + 15);
             if (requestedDate > maxFutureDate) {
                 const maxDateStr = maxFutureDate.toISOString().split("T")[0];
                 return reply.code(400).send({
@@ -137,6 +137,8 @@ export async function weatherRoutes(fastify) {
                 : true;
             // Use forecast weather if a specific date is provided and it's not today
             const isViewingForecast = selectedDayKey !== todayKey;
+            const isHistoric = selectedDayKey < todayKey;
+            const isForecast = selectedDayKey > todayKey;
             const headerIcon = isViewingForecast
                 ? wmoToOpenWeatherIcon(result.weather.daily.weather_code?.[selectedDayIndex] ?? 0, true)
                 : wmoToOpenWeatherIcon(result.weather.current.weather_code, isCurrentDaytime);
@@ -291,6 +293,8 @@ export async function weatherRoutes(fastify) {
                     minute: "2-digit",
                 }),
                 hourlyRows: hourlyRowsWithMinutely,
+                isHistoric,
+                isForecast,
             });
         }
         catch (error) {
