@@ -1,18 +1,47 @@
+/**
+ * Adds two numeric values.
+ *
+ * @param a First addend.
+ * @param b Second addend.
+ * @returns Sum of both numbers.
+ */
 export function add(a: number, b: number): number {
   const obj = { hello: "world" };
-  let c = 7;
+  const c = 7;
 
   return a + b;
 }
 
+/**
+ * Subtracts one number from another.
+ *
+ * @param a Minuend.
+ * @param b Subtrahend.
+ * @returns Difference between a and b.
+ */
 export function subtract(a: number, b: number): number {
   return a - b;
 }
 
+/**
+ * Multiplies two numbers.
+ *
+ * @param a First factor.
+ * @param b Second factor.
+ * @returns Product of a and b.
+ */
 export function multiply(a: number, b: number): number {
   return a * b;
 }
 
+/**
+ * Divides one number by another.
+ *
+ * @param a Dividend.
+ * @param b Divisor.
+ * @returns Quotient of a divided by b.
+ * @throws Error When b is zero.
+ */
 export function divide(a: number, b: number): number {
   if (b === 0) {
     throw new Error("Cannot divide by zero");
@@ -53,6 +82,13 @@ const wmoToMapIcon: { [key: string]: [string, string, string, string] } = {
   "96": ["Thunderstorm", "Thunderstorm with slight hail.", "11", "3"],
   "99": ["Thunderstorm", "Thunderstorm with heavy hail.", "11", "3"],
 };
+
+/**
+ * Maps a WMO weather code to short name, summary, icon code, and WMO icon id.
+ *
+ * @param wmoCode WMO weather condition code as a string.
+ * @returns Tuple containing weather label, description, icon code, and WMO icon id.
+ */
 export function wmoToMapIconFunc(
   wmoCode: string,
 ): [string, string, string, string] {
@@ -61,15 +97,40 @@ export function wmoToMapIconFunc(
   );
 }
 
+/**
+ * Creates the asset URL for an OpenWeather-style icon code.
+ *
+ * @param iconCode Base icon code (e.g., 01, 02, 10).
+ * @param isDay True for day variant, false for night variant.
+ * @returns Relative path to the weather icon asset.
+ */
 export function openWeatherIconUrl(iconCode: string, isDay: boolean): string {
   const suffix = isDay ? "d" : "n";
   return `/assets/weather-icons/${iconCode}${suffix}@2x.png`;
 }
 
+/**
+ * Returns a high-resolution icon URL for display (uses local @2x assets).
+ *
+ * @param iconCode OWM base icon code (e.g., 01, 10).
+ * @param isDay True for daytime variant.
+ * @returns URL of the high-res local icon PNG.
+ */
+export function meteoconUrl(iconCode: string, isDay: boolean): string {
+  return openWeatherIconUrl(iconCode, isDay);
+}
+
+/**
+ * Converts a WMO weather code into display-friendly summary and icon details.
+ *
+ * @param wmoCode Weather code as number or string.
+ * @param isDay True when icon should use daytime variant.
+ * @returns Weather summary with resolved icon code and URL.
+ */
 export function wmoToOpenWeatherIcon(
   wmoCode: string | number,
   isDay: boolean,
-): { summary: string; iconCode: string; iconUrl: string } {
+): { summary: string; iconCode: string; iconUrl: string; meteoconUrl: string } {
   const weatherInfo = wmoToMapIconFunc(
     String(Math.round(Number(wmoCode) || 0)),
   );
@@ -80,5 +141,6 @@ export function wmoToOpenWeatherIcon(
     summary,
     iconCode,
     iconUrl: openWeatherIconUrl(iconCode, isDay),
+    meteoconUrl: meteoconUrl(iconCode, isDay),
   };
 }

@@ -6,6 +6,10 @@ export interface WeatherData {
     wind_direction_10m: number;
     temperature_2m: number;
     relative_humidity_2m: number;
+    precipitation: number;
+    rain: number;
+    showers: number;
+    snowfall: number;
   };
   hourly: {
     time: Date[];
@@ -28,6 +32,14 @@ export interface WeatherData {
     wind_speed_10m_max: Float32Array;
     wind_gusts_10m_max: Float32Array;
   };
+  minutely15: {
+    time: Date[];
+    temperature_2m: Float32Array | null;
+    rain: Float32Array | null;
+    weather_code: Float32Array | null;
+    visibility: Float32Array | null;
+    sunshine_duration: Float32Array | null;
+  };
 }
 
 export interface GeocodeResult {
@@ -38,6 +50,7 @@ export interface GeocodeResult {
   city?: string;
   state?: string;
   zipcode?: string;
+  wasZipCodeOnly?: boolean;
 }
 
 export interface WeatherResponse {

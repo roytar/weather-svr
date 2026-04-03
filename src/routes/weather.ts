@@ -4,6 +4,12 @@ import { wmoToOpenWeatherIcon } from "../utils.js";
 
 const weatherService = new WeatherService();
 
+/**
+ * Converts wind direction in degrees to a 16-point compass direction.
+ *
+ * @param degrees Wind direction in degrees.
+ * @returns Cardinal/ordinal direction label.
+ */
 function degreesToCardinal(degrees: number): string {
   const normalized = ((degrees % 360) + 360) % 360;
   const directions = [
@@ -28,6 +34,13 @@ function degreesToCardinal(degrees: number): string {
   return directions[index];
 }
 
+/**
+ * Builds a YYYY-MM-DD key for a date in a specific timezone.
+ *
+ * @param date Date to normalize.
+ * @param timeZone IANA timezone identifier.
+ * @returns Date key in YYYY-MM-DD format.
+ */
 function dateKeyInTimeZone(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -42,6 +55,13 @@ function dateKeyInTimeZone(date: Date, timeZone: string): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Builds a YYYY-MM-DD-HH key for a date in a specific timezone.
+ *
+ * @param date Date to normalize.
+ * @param timeZone IANA timezone identifier.
+ * @returns Hour key in YYYY-MM-DD-HH format.
+ */
 function hourKeyInTimeZone(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -59,6 +79,11 @@ function hourKeyInTimeZone(date: Date, timeZone: string): string {
   return `${year}-${month}-${day}-${hour}`;
 }
 
+/**
+ * Registers weather endpoints for JSON, text, and day-view responses.
+ *
+ * @param fastify Fastify server instance.
+ */
 export async function weatherRoutes(fastify: FastifyInstance) {
   // GET /weather?address=<address>
   fastify.get(
@@ -210,7 +235,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // GET /weather/day?address=<address>&date=<YYYY-MM-DD> - Returns one-day weather HTML (date optional)
+  // GET /weather/day?address=<address>&date=<YYYY-MM-DD> - Returns one-day weather HTML (date optional, defaults to New York)
   fastify.get(
     "/weather/day",
     {
@@ -221,13 +246,12 @@ export async function weatherRoutes(fastify: FastifyInstance) {
             address: { type: "string" },
             date: { type: "string" },
           },
-          required: ["address"],
         },
       },
     },
     async (request, reply) => {
-      const { address, date } = request.query as {
-        address: string;
+      const { address = "New York", date } = request.query as {
+        address?: string;
         date?: string;
       };
 
@@ -286,17 +310,29 @@ export async function weatherRoutes(fastify: FastifyInstance) {
               result.weather.current.weather_code,
               isCurrentDaytime,
             );
-        const locationText =
-          result.location.formattedAddress ||
-          [
-            result.location.city,
-            result.location.state,
-            result.location.zipcode,
-            result.location.country,
-          ]
-            .filter(Boolean)
-            .join(", ") ||
-          `${result.location.latitude}, ${result.location.longitude}`;
+        const locationText = result.location.wasZipCodeOnly
+          ? [
+              result.location.city,
+              result.location.state,
+              result.location.zipcode,
+            ]
+              .filter(Boolean)
+              .join(", ")
+          : result.location.formattedAddress ||
+            [
+              result.location.city,
+              result.location.state,
+              result.location.zipcode,
+              result.location.country,
+            ]
+              .filter(Boolean)
+              .join(", ") ||
+            `${result.location.latitude}, ${result.location.longitude}`;
+
+        // For zip-only searches, keep the input concise (city/state/zip only).
+        const expandedAddress = result.location.wasZipCodeOnly
+          ? locationText
+          : result.location.formattedAddress || locationText;
 
         const hourlyRows = result.weather.hourly.time
           .map((hourTime, index) => ({
@@ -347,6 +383,7 @@ export async function weatherRoutes(fastify: FastifyInstance) {
               ...row,
               iconCode: hourIcon.iconCode,
               iconUrl: hourIcon.iconUrl,
+              meteoconUrl: hourIcon.meteoconUrl,
               iconSummary: hourIcon.summary,
             };
           })
@@ -358,6 +395,50 @@ export async function weatherRoutes(fastify: FastifyInstance) {
             return sameDay && (selectedDayKey !== todayKey || remainingHours);
           });
 
+        // Build minutely15 sub-rows grouped by hour key — future intervals only
+        const minutely15ByHourKey: Record<
+          string,
+          Array<{
+            time: string;
+            temperature: number;
+            rain: number;
+            visibility: number;
+            sunshine_duration: number;
+          }>
+        > = {};
+        const m15 = result.weather.minutely15;
+        if (m15?.time) {
+          m15.time.forEach((t, i) => {
+            if (t <= now) return;
+            const m15DayKey = dateKeyInTimeZone(t, timezone);
+            if (m15DayKey !== selectedDayKey) return;
+            const hk = hourKeyInTimeZone(t, timezone);
+            if (!minutely15ByHourKey[hk]) minutely15ByHourKey[hk] = [];
+            minutely15ByHourKey[hk].push({
+              time: t.toLocaleTimeString("en-US", {
+                timeZone: timezone,
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              temperature: Math.round(m15.temperature_2m?.[i] ?? 0),
+              rain: Number((m15.rain?.[i] ?? 0).toFixed(3)),
+              visibility: Math.round(m15.visibility?.[i] ?? 0),
+              sunshine_duration: Math.round(m15.sunshine_duration?.[i] ?? 0),
+            });
+          });
+        }
+
+        const hourlyRowsWithMinutely = hourlyRows.map((row) => {
+          const subRows =
+            minutely15ByHourKey[hourKeyInTimeZone(row.hourDate, timezone)] ??
+            [];
+          return {
+            ...row,
+            minutely15: subRows,
+            hasMinutely15: subRows.length > 0,
+          };
+        });
+
         return reply.view("weather-day.hbs", {
           dayDate: selectedDayDate.toLocaleDateString("en-US", {
             timeZone: timezone,
@@ -367,14 +448,66 @@ export async function weatherRoutes(fastify: FastifyInstance) {
             day: "numeric",
           }),
           location: locationText,
+          expandedAddress,
+          wasZipCodeOnly: result.location.wasZipCodeOnly || false,
           summary: headerIcon.summary,
           iconCode: headerIcon.iconCode,
           iconUrl: headerIcon.iconUrl,
+          meteoconUrl: headerIcon.meteoconUrl,
+          timezone,
+          isViewingForecast,
+          // current conditions (today only)
+          currentTime: isViewingForecast
+            ? null
+            : now.toLocaleTimeString("en-US", {
+                timeZone: timezone,
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+          currentTemp: Math.round(result.weather.current.temperature_2m),
+          currentWindSpeed: Math.round(result.weather.current.wind_speed_10m),
+          currentWindDir: degreesToCardinal(
+            result.weather.current.wind_direction_10m,
+          ),
+          currentWindDeg: Math.round(result.weather.current.wind_direction_10m),
+          currentPrecip: Number(
+            result.weather.current.precipitation.toFixed(2),
+          ),
           relativeHumidity: Math.round(
             result.weather.current.relative_humidity_2m,
           ),
-          timezone,
-          hourlyRows,
+          // selected-day stats
+          highTemp: Math.round(
+            result.weather.daily.temperature_2m_max[selectedDayIndex],
+          ),
+          lowTemp: Math.round(
+            result.weather.daily.temperature_2m_min[selectedDayIndex],
+          ),
+          apparentTempMax: Math.round(
+            result.weather.daily.apparent_temperature_max?.[selectedDayIndex] ??
+              0,
+          ),
+          maxWindSpeed: Math.round(
+            result.weather.daily.wind_speed_10m_max[selectedDayIndex],
+          ),
+          maxGusts: Math.round(
+            result.weather.daily.wind_gusts_10m_max[selectedDayIndex],
+          ),
+          sunriseTime: result.weather.daily.sunrise[
+            selectedDayIndex
+          ]?.toLocaleTimeString("en-US", {
+            timeZone: timezone,
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          sunsetTime: result.weather.daily.sunset[
+            selectedDayIndex
+          ]?.toLocaleTimeString("en-US", {
+            timeZone: timezone,
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          hourlyRows: hourlyRowsWithMinutely,
         });
       } catch (error) {
         fastify.log.error(error);
@@ -382,4 +515,9 @@ export async function weatherRoutes(fastify: FastifyInstance) {
       }
     },
   );
+
+  // GET / - Redirect root to /weather/day with New York default
+  fastify.get("/", async (request, reply) => {
+    return reply.redirect("/weather/day?address=New%20York");
+  });
 }

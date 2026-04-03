@@ -2,7 +2,9 @@ import app from "./app.js";
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
-// Start the server
+/**
+ * Boots the Fastify server and logs the primary endpoints.
+ */
 const start = async () => {
   try {
     await app.listen({ port: PORT, host: "0.0.0.0" });

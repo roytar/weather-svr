@@ -1,6 +1,9 @@
 import cors from "@fastify/cors";
 import fp from "fastify-plugin";
 
+/**
+ * Registers CORS support for API routes.
+ */
 export default fp(async (fastify) => {
   fastify.register(cors, {
     origin: true, // Allow all origins for development

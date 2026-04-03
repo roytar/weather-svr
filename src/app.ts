@@ -6,6 +6,12 @@ import path from "node:path";
 import { weatherRoutes, healthRoutes } from "./routes/index.js";
 import { cors } from "./plugins/index.js";
 
+/**
+ * Formats a Date into a local ISO-8601-like timestamp with timezone offset.
+ *
+ * @param date Date instance to format.
+ * @returns Timestamp string suitable for structured logs.
+ */
 function localIsoTimestamp(date: Date): string {
   const pad = (value: number, size = 2) => String(value).padStart(size, "0");
   const year = date.getFullYear();

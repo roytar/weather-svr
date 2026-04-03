@@ -1,7 +1,7 @@
 import { fetchWeatherApi } from "openmeteo";
 import { WeatherApiResponse } from "@openmeteo/sdk/weather-api-response.js";
 import nodeGeocoder from "node-geocoder";
-import { find } from "geo-tz/now";
+import { find as tzFind } from "geo-tz/now";
 import { wmoToOpenWeatherIcon } from "../utils.js";
 import {
   WeatherData,
@@ -20,11 +20,37 @@ type WeatherRangeOptions = {
   endDate?: string;
 };
 
-// Helper function to form time ranges
+/**
+ * Detects if the input string is only a zip code (US format: 5 or 5+4 digits).
+ *
+ * @param address The address string to check.
+ * @returns True if the address appears to be only a zip code.
+ */
+function isZipCodeOnly(address: string): boolean {
+  const trimmed = address.trim();
+  // Match 5-digit zip (12345) or 5+4 zip (12345-6789)
+  return /^\d{5}(-\d{4})?$/.test(trimmed);
+}
+
+/**
+ * Builds a numeric sequence from start to stop using a fixed interval.
+ *
+ * @param start Inclusive starting value.
+ * @param stop Exclusive ending value.
+ * @param step Increment between each value.
+ * @returns Array of evenly spaced numeric values.
+ */
 const range = (start: number, stop: number, step: number) =>
   Array.from({ length: (stop - start) / step }, (_, i) => start + i * step);
 
 export class WeatherService {
+  /**
+   * Converts a free-form address (or zip code) into latitude/longitude and location metadata.
+   * If only a zip code is provided, automatically looks up a street address within that zip code.
+   *
+   * @param address Human-readable address, place name, or zip code.
+   * @returns Normalized geocoding result with coordinates and formatted fields.
+   */
   async geocodeAddress(address: string): Promise<GeocodeResult> {
     try {
       const locations = await geocoder.geocode(address);
@@ -33,7 +59,22 @@ export class WeatherService {
         throw new Error(`No geocoding results for ${address}`);
       }
 
-      const location = locations[0];
+      let location = locations[0];
+      const wasZipCodeOnly = isZipCodeOnly(address);
+
+      // If input was only a zip code, reverse-geocode the result to find a street address
+      if (wasZipCodeOnly && location.latitude && location.longitude) {
+        const reverseResults = await geocoder.reverse({
+          lat: location.latitude,
+          lon: location.longitude,
+        });
+
+        if (reverseResults.length > 0) {
+          // Use the first street address from reverse geocoding
+          location = reverseResults[0];
+        }
+      }
+
       return {
         latitude: location.latitude!,
         longitude: location.longitude!,
@@ -42,6 +83,7 @@ export class WeatherService {
         city: location.city,
         state: location.state,
         zipcode: location.zipcode,
+        wasZipCodeOnly,
       };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -53,12 +95,20 @@ export class WeatherService {
     }
   }
 
+  /**
+   * Retrieves weather data from Open-Meteo for a set of coordinates.
+   *
+   * @param latitude Latitude coordinate in decimal degrees.
+   * @param longitude Longitude coordinate in decimal degrees.
+   * @param options Optional forecast-days or explicit date-range controls.
+   * @returns Current, hourly, and daily weather data mapped to the app model.
+   */
   async getWeatherData(
     latitude: number,
     longitude: number,
     options: WeatherRangeOptions = {},
   ): Promise<WeatherData> {
-    const tzTimezone = find(latitude, longitude);
+    const tzTimezone = tzFind(latitude, longitude);
 
     const params = {
       latitude: [latitude],
@@ -73,6 +123,10 @@ export class WeatherService {
         "wind_direction_10m",
         "temperature_2m",
         "relative_humidity_2m",
+        "precipitation",
+        "rain",
+        "showers",
+        "snowfall",
       ],
       hourly: [
         "temperature_2m",
@@ -92,6 +146,13 @@ export class WeatherService {
         "temperature_2m_min",
         "wind_speed_10m_max",
         "wind_gusts_10m_max",
+      ],
+      minutely_15: [
+        "temperature_2m",
+        "rain",
+        "weather_code",
+        "visibility",
+        "sunshine_duration",
       ],
     };
 
@@ -126,6 +187,7 @@ export class WeatherService {
     const current = response.current()!;
     const hourly = response.hourly()!;
     const daily = response.daily()!;
+    const minutely15 = response.minutely15()!;
 
     // Define Int64 variables so they can be processed accordingly
     const sunrise = daily.variables(1)!;
@@ -140,6 +202,10 @@ export class WeatherService {
         wind_direction_10m: current.variables(2)!.value(),
         temperature_2m: current.variables(3)!.value(),
         relative_humidity_2m: current.variables(4)!.value(),
+        precipitation: current.variables(5)!.value(),
+        rain: current.variables(6)!.value(),
+        showers: current.variables(7)!.value(),
+        snowfall: current.variables(8)!.value(),
       },
       hourly: {
         time: range(
@@ -179,11 +245,37 @@ export class WeatherService {
         wind_speed_10m_max: daily.variables(6)!.valuesArray()!,
         wind_gusts_10m_max: daily.variables(7)!.valuesArray()!,
       },
+      minutely15: {
+        time: Array.from(
+          {
+            length:
+              (Number(minutely15.timeEnd()) - Number(minutely15.time())) /
+              minutely15.interval(),
+          },
+          (_, i) =>
+            new Date(
+              (Number(minutely15.time()) + i * minutely15.interval()) * 1000,
+            ),
+        ),
+        temperature_2m: minutely15.variables(0)!.valuesArray(),
+        rain: minutely15.variables(1)!.valuesArray(),
+        weather_code: minutely15.variables(2)!.valuesArray(),
+        visibility: minutely15.variables(3)!.valuesArray(),
+        sunshine_duration: minutely15.variables(4)!.valuesArray(),
+      },
     };
 
     return weatherData;
   }
 
+  /**
+   * Formats weather data as a text report suitable for CLI-style output.
+   *
+   * @param location Geocoded location used for header metadata.
+   * @param weatherData Structured weather payload to render.
+   * @param timezone IANA timezone used when formatting date and time values.
+   * @returns Multi-line weather summary string.
+   */
   formatWeatherOutput(
     location: GeocodeResult,
     weatherData: WeatherData,
@@ -260,6 +352,13 @@ export class WeatherService {
     return output;
   }
 
+  /**
+   * Resolves a free-form address and returns weather data for that location.
+   *
+   * @param address Human-readable location input (e.g., city, state, zip).
+   * @param options Optional date range or forecast window controls.
+   * @returns Weather payload including resolved location and timezone metadata.
+   */
   async getWeatherForAddress(
     address: string,
     options: WeatherRangeOptions = {},
@@ -272,7 +371,7 @@ export class WeatherService {
     );
 
     // Get timezone from the weather response
-    const tzTimezone = find(location.latitude, location.longitude);
+    const tzTimezone = tzFind(location.latitude, location.longitude);
 
     return {
       location,
