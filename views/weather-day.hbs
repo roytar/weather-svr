@@ -479,8 +479,10 @@
                 {{dayDate}}
                 {{#if isHistoric}}
                   <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Historic</span>
-                {{else if isForecast}}
-                  <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Forecast</span>
+                {{else}}
+                  {{#if isForecast}}
+                    <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Forcast</span>
+                  {{/if}}
                 {{/if}}
               </div>
               {{#unless isViewingForecast}}
