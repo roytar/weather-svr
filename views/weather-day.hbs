@@ -3,6 +3,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>One-Day Weather</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <style>
       :root {
         --bg: #f4f7fb;
@@ -474,7 +475,14 @@
         <header class="header">
           <div class="header-top">
             <div class="header-top-left">
-              <div class="day">{{dayDate}}</div>
+              <div class="day">
+                {{dayDate}}
+                {{#if isHistoric}}
+                  <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Historic</span>
+                {{else if isForecast}}
+                  <span style="color: var(--accent); font-size: 0.85rem; margin-left: 0.5rem; font-weight: 500;">Forecast</span>
+                {{/if}}
+              </div>
               {{#unless isViewingForecast}}
                 <div class="current-time">{{currentTime}}</div>
               {{/unless}}
@@ -509,6 +517,15 @@
                     title="Select a date"
                   />
                 </form>
+                <script>
+                  // Constrain date input max to ~15 days in future (API limit).
+                  const dateInput = document.getElementById('dateInput');
+                  const today = new Date();
+                  const maxDate = new Date(today);
+                  maxDate.setDate(maxDate.getDate() + 15);
+                  const maxDateStr = maxDate.toISOString().split('T')[0];
+                  dateInput.max = maxDateStr;
+                </script>
               </div>
             </div>
             <div class="header-location">🌍&nbsp;{{timezone}}</div>

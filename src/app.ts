@@ -50,6 +50,15 @@ app.register(fastifyStatic, {
   prefix: "/assets/",
 });
 
+// Serve favicon as SVG and keep /favicon.ico for browser compatibility.
+app.get("/favicon.svg", async (_request, reply) => {
+  return reply.type("image/svg+xml").sendFile("favicon.svg");
+});
+
+app.get("/favicon.ico", async (_request, reply) => {
+  return reply.type("image/svg+xml").sendFile("favicon.svg");
+});
+
 // Register routes
 // http://localhost:3000/weather?address=48%20Darrow%20Street%2008882
 app.register(weatherRoutes);

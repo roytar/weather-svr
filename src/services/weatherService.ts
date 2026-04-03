@@ -163,6 +163,7 @@ export class WeatherService {
       (
         params as typeof params & { start_date: string; end_date: string }
       ).end_date = options.endDate;
+      options.forecastDays = 1;
     } else if (options.forecastDays && options.forecastDays > 0) {
       (params as typeof params & { forecast_days: number }).forecast_days =
         options.forecastDays;

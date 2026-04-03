@@ -111,6 +111,22 @@ export async function weatherRoutes(fastify: FastifyInstance) {
           .send({ error: "Invalid date format. Use YYYY-MM-DD" });
       }
 
+      // Validate date is not too far in the future. Open-Meteo forecasts ~15 days ahead.
+      if (date) {
+        const requestedDate = new Date(date + "T00:00:00Z");
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        const maxFutureDate = new Date(today);
+        maxFutureDate.setUTCDate(maxFutureDate.getUTCDate() + 15);
+
+        if (requestedDate > maxFutureDate) {
+          const maxDateStr = maxFutureDate.toISOString().split("T")[0];
+          return reply.code(400).send({
+            error: `Date ${date} is too far in the future. Maximum available date is ${maxDateStr} (~16 days from today).`,
+          });
+        }
+      }
+
       try {
         const result = await weatherService.getWeatherForAddress(
           address,
@@ -151,6 +167,8 @@ export async function weatherRoutes(fastify: FastifyInstance) {
 
         // Use forecast weather if a specific date is provided and it's not today
         const isViewingForecast = selectedDayKey !== todayKey;
+        const isHistoric = selectedDayKey < todayKey;
+        const isForecast = selectedDayKey > todayKey;
         const headerIcon = isViewingForecast
           ? wmoToOpenWeatherIcon(
               result.weather.daily.weather_code?.[selectedDayIndex] ?? 0,
@@ -358,6 +376,8 @@ export async function weatherRoutes(fastify: FastifyInstance) {
             minute: "2-digit",
           }),
           hourlyRows: hourlyRowsWithMinutely,
+          isHistoric,
+          isForecast,
         });
       } catch (error) {
         fastify.log.error(error);
