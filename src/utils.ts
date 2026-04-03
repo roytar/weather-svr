@@ -106,7 +106,7 @@ export function wmoToMapIconFunc(
  */
 export function openWeatherIconUrl(iconCode: string, isDay: boolean): string {
   const suffix = isDay ? "d" : "n";
-  return `/assets/weather-icons/${iconCode}${suffix}@2x.png`;
+  return `/assets/weather-icons/${iconCode}${suffix}@2x.svg`;
 }
 
 /**
