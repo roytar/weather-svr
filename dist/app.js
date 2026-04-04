@@ -3,34 +3,76 @@ import fastifyView from "@fastify/view";
 import fastifyStatic from "@fastify/static";
 import handlebars from "handlebars";
 import path from "node:path";
+import { generate as generateShortUuid } from "short-uuid";
 import { weatherRoutes, healthRoutes } from "./routes/index.js";
 import { cors } from "./plugins/index.js";
 /**
- * Formats a Date into a local ISO-8601-like timestamp with timezone offset.
+ * Formats a Date into short 12-hour America/New_York time with AM/PM.
  *
  * @param date Date instance to format.
- * @returns Timestamp string suitable for structured logs.
+ * @returns Readable timestamp string suitable for structured logs.
  */
-function localIsoTimestamp(date) {
-    const pad = (value, size = 2) => String(value).padStart(size, "0");
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1);
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-    const seconds = pad(date.getSeconds());
-    const millis = pad(date.getMilliseconds(), 3);
-    const offsetMinutes = -date.getTimezoneOffset();
-    const offsetSign = offsetMinutes >= 0 ? "+" : "-";
-    const absOffsetMinutes = Math.abs(offsetMinutes);
-    const offsetHoursPart = pad(Math.floor(absOffsetMinutes / 60));
-    const offsetMinutesPart = pad(absOffsetMinutes % 60);
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${millis}${offsetSign}${offsetHoursPart}:${offsetMinutesPart}`;
+function newYorkIsoTimestamp(date) {
+    const millis = String(date.getMilliseconds()).padStart(3, "0");
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+    }).formatToParts(date);
+    const getPart = (type) => parts.find((part) => part.type === type)?.value ?? "";
+    const month = getPart("month");
+    const day = getPart("day");
+    const hour = getPart("hour");
+    const minute = getPart("minute");
+    const second = getPart("second");
+    const dayPeriod = getPart("dayPeriod");
+    return `${month}/${day} ${hour}:${minute}:${second}.${millis} ${dayPeriod} ET`;
 }
 const app = Fastify({
     logger: {
-        timestamp: () => `,"time":"${localIsoTimestamp(new Date())}"`,
+        timestamp: () => `,"time":"${newYorkIsoTimestamp(new Date())}"`,
     },
+    genReqId: () => generateShortUuid(),
+    // Use the custom hook below for request logs so static asset GETs can be skipped.
+    disableRequestLogging: true,
+});
+function shouldSkipHttpLog(url) {
+    return (url.startsWith("/assets/weather-icons/") ||
+        url.startsWith("/assets/") ||
+        url === "/favicon.ico" ||
+        url === "/favicon.svg");
+}
+app.addHook("preHandler", async (request) => {
+    const requestUrl = request.raw.url ?? request.url;
+    const route = request.routeOptions.url ?? request.url;
+    if (shouldSkipHttpLog(requestUrl)) {
+        return;
+    }
+    request.log.info({
+        method: request.method,
+        route,
+        url: requestUrl,
+        params: request.params,
+        query: request.query,
+    }, "http request");
+});
+app.addHook("onResponse", async (request, reply) => {
+    const requestUrl = request.raw.url ?? request.url;
+    const route = request.routeOptions.url ?? request.url;
+    if (shouldSkipHttpLog(requestUrl)) {
+        return;
+    }
+    request.log.info({
+        method: request.method,
+        route,
+        url: requestUrl,
+        statusCode: reply.statusCode,
+        responseTimeMs: reply.elapsedTime,
+    }, "http response");
 });
 // Register plugins
 app.register(cors);
