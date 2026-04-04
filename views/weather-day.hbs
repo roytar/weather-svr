@@ -680,7 +680,9 @@
               <th title="Wind speed in miles per hour">Wind (mph)</th>
               <th title="Wind direction (cardinal and degrees)">Direction</th>
               <th title="Rainfall only">Rain (in)</th>
-              <th title="Snowfall only">Snow (in)</th>
+              {{#if showSnowfall}}
+                <th title="Snowfall only">Snow (in)</th>
+              {{/if}}
             </tr>
           </thead>
           <tbody>
@@ -713,11 +715,13 @@
                 <td>{{this.windDirectionCardinal}}
                   ({{this.windDirectionDegrees}}&deg;)</td>
                 <td>{{this.rain}}</td>
-                <td>{{this.snow}}</td>
+                {{#if ../showSnowfall}}
+                  <td>{{this.snow}}</td>
+                {{/if}}
               </tr>
               {{#if this.hasMinutely15}}
                 <tr class="minutely-detail" id="m15-{{@index}}" style="display:none">
-                  <td colspan="10">
+                  <td colspan="{{#if ../showSnowfall}}10{{else}}9{{/if}}">
                     <table class="minutely-table">
                       <thead>
                         <tr>

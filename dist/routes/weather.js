@@ -139,6 +139,17 @@ export async function weatherRoutes(fastify) {
             const isViewingForecast = selectedDayKey !== todayKey;
             const isHistoric = selectedDayKey < todayKey;
             const isForecast = selectedDayKey > todayKey;
+            const currentDateParts = new Intl.DateTimeFormat("en-US", {
+                timeZone: timezone,
+                month: "numeric",
+                day: "numeric",
+            }).formatToParts(now);
+            const currentMonth = Number(currentDateParts.find((part) => part.type === "month")?.value ?? 0);
+            const currentDayOfMonth = Number(currentDateParts.find((part) => part.type === "day")?.value ?? 0);
+            const showSnowfall = currentMonth === 12 ||
+                currentMonth === 1 ||
+                currentMonth === 2 ||
+                (currentMonth === 3 && currentDayOfMonth <= 15);
             const headerIcon = isViewingForecast
                 ? wmoToOpenWeatherIcon(result.weather.daily.weather_code?.[selectedDayIndex] ?? 0, true)
                 : wmoToOpenWeatherIcon(result.weather.current.weather_code, isCurrentDaytime);
@@ -297,6 +308,7 @@ export async function weatherRoutes(fastify) {
                 hourlyRows: hourlyRowsWithMinutely,
                 isHistoric,
                 isForecast,
+                showSnowfall,
             });
         }
         catch (error) {
