@@ -659,6 +659,7 @@
             {{/unless}}
             <div class="stat" title="Maximum wind speed today">🌬&nbsp;Max wind:&nbsp;<strong>{{maxWindSpeed}} mph</strong></div>
             <div class="stat" title="Maximum wind gusts today">💨&nbsp;Gusts:&nbsp;<strong>{{maxGusts}} mph</strong></div>
+            <div class="stat" title="Maximum precipitation probability for the selected day">☔&nbsp;Precip chance:&nbsp;<strong>{{precipitationProbabilityMax}}%</strong></div>
           </div>
           <div class="stats-row">
             <div class="stat" title="Sunrise time today">🌅&nbsp;<strong>{{sunriseTime}}</strong></div>
@@ -674,9 +675,10 @@
               <th title="Weather icon and condition">Icon</th>
               <th title="Hour of day (24-hour format)">Hour</th>
               <th title="Temperature in Fahrenheit">Temp (F)</th>
+              <th title="Probability of precipitation during the hour">Precip (%)</th>
+              <th title="Total precipitation including rain, snow, and sleet">Precip (in)</th>
               <th title="Wind speed in miles per hour">Wind (mph)</th>
               <th title="Wind direction (cardinal and degrees)">Direction</th>
-              <th title="Total precipitation including rain, snow, and sleet">Precip (in)</th>
               <th title="Rainfall only">Rain (in)</th>
               <th title="Snowfall only">Snow (in)</th>
             </tr>
@@ -705,16 +707,17 @@
                 </td>
                 <td>{{this.hour}}</td>
                 <td>{{this.temperature}}</td>
+                <td>{{this.precipitationProbability}}%</td>
+                <td>{{this.precipitation}}</td>
                 <td>{{this.windSpeed}}</td>
                 <td>{{this.windDirectionCardinal}}
                   ({{this.windDirectionDegrees}}&deg;)</td>
-                <td>{{this.precipitation}}</td>
                 <td>{{this.rain}}</td>
                 <td>{{this.snow}}</td>
               </tr>
               {{#if this.hasMinutely15}}
                 <tr class="minutely-detail" id="m15-{{@index}}" style="display:none">
-                  <td colspan="9">
+                  <td colspan="10">
                     <table class="minutely-table">
                       <thead>
                         <tr>

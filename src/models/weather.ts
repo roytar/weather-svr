@@ -20,6 +20,7 @@ export interface WeatherData {
     windSpeed: Float32Array;
     windDirection: Float32Array;
     weatherCode: Float32Array;
+    precipitation_probability: Float32Array;
   };
   daily: {
     time: Date[];
@@ -31,6 +32,7 @@ export interface WeatherData {
     temperature_2m_min: Float32Array;
     wind_speed_10m_max: Float32Array;
     wind_gusts_10m_max: Float32Array;
+    precipitation_probability_max: Float32Array;
   };
   minutely15: {
     time: Date[];

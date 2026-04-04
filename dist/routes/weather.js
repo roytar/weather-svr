@@ -176,6 +176,7 @@ export async function weatherRoutes(fastify) {
                 }),
                 temperature: Math.round(result.weather.hourly.temperature[index]),
                 precipitation: Number(result.weather.hourly.precipitation[index].toFixed(2)),
+                precipitationProbability: Math.round(result.weather.hourly.precipitation_probability[index] ?? 0),
                 rain: Number(result.weather.hourly.rain[index].toFixed(2)),
                 snow: Number(result.weather.hourly.snowfall[index].toFixed(2)),
                 windSpeed: Math.round(result.weather.hourly.windSpeed[index]),
@@ -282,6 +283,7 @@ export async function weatherRoutes(fastify) {
                     0),
                 maxWindSpeed: Math.round(result.weather.daily.wind_speed_10m_max[selectedDayIndex]),
                 maxGusts: Math.round(result.weather.daily.wind_gusts_10m_max[selectedDayIndex]),
+                precipitationProbabilityMax: Math.round(result.weather.daily.precipitation_probability_max?.[selectedDayIndex] ?? 0),
                 sunriseTime: result.weather.daily.sunrise[selectedDayIndex]?.toLocaleTimeString("en-US", {
                     timeZone: timezone,
                     hour: "2-digit",

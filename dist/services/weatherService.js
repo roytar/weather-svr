@@ -107,6 +107,7 @@ export class WeatherService {
                 "wind_speed_10m",
                 "wind_direction_10m",
                 "weather_code",
+                "precipitation_probability",
             ],
             daily: [
                 "apparent_temperature_max",
@@ -117,6 +118,7 @@ export class WeatherService {
                 "temperature_2m_min",
                 "wind_speed_10m_max",
                 "wind_gusts_10m_max",
+                "precipitation_probability_max",
             ],
             minutely_15: [
                 "temperature_2m",
@@ -178,6 +180,7 @@ export class WeatherService {
                 windSpeed: hourly.variables(4).valuesArray(),
                 windDirection: hourly.variables(5).valuesArray(),
                 weatherCode: hourly.variables(6).valuesArray(),
+                precipitation_probability: hourly.variables(7).valuesArray() || new Float32Array(),
             },
             daily: {
                 time: Array.from({
@@ -192,6 +195,7 @@ export class WeatherService {
                 temperature_2m_min: daily.variables(5).valuesArray(),
                 wind_speed_10m_max: daily.variables(6).valuesArray(),
                 wind_gusts_10m_max: daily.variables(7).valuesArray(),
+                precipitation_probability_max: daily.variables(8).valuesArray() || new Float32Array(),
             },
             minutely15: {
                 time: Array.from({
@@ -251,13 +255,13 @@ export class WeatherService {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
-            })} ${dailyIcon.summary} icon: ${dailyIcon.iconCode} ${dailyIcon.iconUrl} ${Math.round(weatherData.daily.temperature_2m_max[i])} ${Math.round(weatherData.daily.temperature_2m_min[i])} ${Math.round(weatherData.daily.wind_speed_10m_max[i])} ${Math.round(weatherData.daily.wind_gusts_10m_max[i])}\n`;
+            })} ${dailyIcon.summary} icon: ${dailyIcon.iconCode} ${dailyIcon.iconUrl} ${Math.round(weatherData.daily.temperature_2m_max[i])} ${Math.round(weatherData.daily.temperature_2m_min[i])} ${Math.round(weatherData.daily.wind_speed_10m_max[i])} ${Math.round(weatherData.daily.wind_gusts_10m_max[i])} precip%: ${Math.round(weatherData.daily.precipitation_probability_max[i] ?? 0)}\n`;
             // Add hourly data for first few hours of each day
             for (let hour = i * 24; hour < Math.min(i * 24 + 6, weatherData.hourly.time.length); hour++) {
                 output += `  ${weatherData.hourly.time[hour].toLocaleString("en-US", {
                     timeZone: timezone || "America/New_York",
                     hour: "2-digit",
-                })} ${Math.round(weatherData.hourly.temperature[hour])} ${Math.round(weatherData.hourly.precipitation[hour])}\n`;
+                })} ${Math.round(weatherData.hourly.temperature[hour])} ${Math.round(weatherData.hourly.precipitation[hour])} precip%: ${Math.round(weatherData.hourly.precipitation_probability[hour] ?? 0)}\n`;
             }
         }
         return output;
