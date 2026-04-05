@@ -14,10 +14,15 @@ const geocoder = nodeGeocoder({
   formatter: null,
 });
 
+type TemperatureUnit = "fahrenheit" | "celsius";
+type UnitSystem = "english" | "metric";
+
 type WeatherRangeOptions = {
   forecastDays?: number;
   startDate?: string;
   endDate?: string;
+  temperatureUnit?: TemperatureUnit;
+  unitSystem?: UnitSystem;
 };
 
 /**
@@ -79,6 +84,8 @@ export class WeatherService {
         latitude: location.latitude!,
         longitude: location.longitude!,
         formattedAddress: location.formattedAddress,
+        streetName: location.streetName,
+        streetNumber: location.streetNumber,
         country: location.country,
         city: location.city,
         state: location.state,
@@ -109,13 +116,50 @@ export class WeatherService {
     options: WeatherRangeOptions = {},
   ): Promise<WeatherData> {
     const tzTimezone = tzFind(latitude, longitude);
+    const temperatureUnit =
+      options.temperatureUnit === "celsius" ? "celsius" : "fahrenheit";
+    const unitSystem = options.unitSystem === "metric" ? "metric" : "english";
+    const windSpeedUnit = unitSystem === "metric" ? "kmh" : "mph";
+    const precipitationUnit = unitSystem === "metric" ? "mm" : "inch";
+
+    const convertPrecipValue = (value: number): number =>
+      unitSystem === "metric" ? Number((value / 10).toFixed(3)) : value;
+
+    const convertPrecipArray = (
+      values: Float32Array | null | undefined,
+    ): Float32Array =>
+      values
+        ? Float32Array.from(values, (value) =>
+            unitSystem === "metric" ? Number((value / 10).toFixed(3)) : value,
+          )
+        : new Float32Array();
+
+    const convertNullablePrecipArray = (
+      values: Float32Array | null | undefined,
+    ): Float32Array | null =>
+      values
+        ? Float32Array.from(values, (value) =>
+            unitSystem === "metric" ? Number((value / 10).toFixed(3)) : value,
+          )
+        : null;
+
+    const convertVisibilityArray = (
+      values: Float32Array | null | undefined,
+    ): Float32Array | null =>
+      values
+        ? Float32Array.from(values, (value) =>
+            unitSystem === "metric"
+              ? value
+              : Number((value * 3.28084).toFixed(1)),
+          )
+        : null;
 
     const params = {
       latitude: [latitude],
       longitude: [longitude],
-      wind_speed_unit: "mph",
-      temperature_unit: "fahrenheit",
-      precipitation_unit: "inch",
+      wind_speed_unit: windSpeedUnit,
+      temperature_unit: temperatureUnit,
+      precipitation_unit: precipitationUnit,
       timezone: tzTimezone,
       current: [
         "weather_code",
@@ -205,10 +249,10 @@ export class WeatherService {
         wind_direction_10m: current.variables(2)!.value(),
         temperature_2m: current.variables(3)!.value(),
         relative_humidity_2m: current.variables(4)!.value(),
-        precipitation: current.variables(5)!.value(),
-        rain: current.variables(6)!.value(),
-        showers: current.variables(7)!.value(),
-        snowfall: current.variables(8)!.value(),
+        precipitation: convertPrecipValue(current.variables(5)!.value()),
+        rain: convertPrecipValue(current.variables(6)!.value()),
+        showers: convertPrecipValue(current.variables(7)!.value()),
+        snowfall: convertPrecipValue(current.variables(8)!.value()),
       },
       hourly: {
         time: range(
@@ -217,9 +261,9 @@ export class WeatherService {
           hourly.interval(),
         ).map((t) => new Date(t * 1000)),
         temperature: hourly.variables(0)!.valuesArray()!,
-        precipitation: hourly.variables(1)!.valuesArray()!,
-        rain: hourly.variables(2)!.valuesArray()!,
-        snowfall: hourly.variables(3)!.valuesArray()!,
+        precipitation: convertPrecipArray(hourly.variables(1)!.valuesArray()),
+        rain: convertPrecipArray(hourly.variables(2)!.valuesArray()),
+        snowfall: convertPrecipArray(hourly.variables(3)!.valuesArray()),
         windSpeed: hourly.variables(4)!.valuesArray()!,
         windDirection: hourly.variables(5)!.valuesArray()!,
         weatherCode: hourly.variables(6)!.valuesArray()!,
@@ -265,9 +309,13 @@ export class WeatherService {
             ),
         ),
         temperature_2m: minutely15.variables(0)!.valuesArray(),
-        rain: minutely15.variables(1)!.valuesArray(),
+        rain: convertNullablePrecipArray(
+          minutely15.variables(1)!.valuesArray(),
+        ),
         weather_code: minutely15.variables(2)!.valuesArray(),
-        visibility: minutely15.variables(3)!.valuesArray(),
+        visibility: convertVisibilityArray(
+          minutely15.variables(3)!.valuesArray(),
+        ),
         sunshine_duration: minutely15.variables(4)!.valuesArray(),
       },
     };

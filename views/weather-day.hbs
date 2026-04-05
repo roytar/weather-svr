@@ -2,7 +2,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>One-Day Weather</title>
+    <title>Weather Explorer</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <style>
       :root {
@@ -66,6 +66,16 @@
         color: var(--accent);
       }
 
+      .header-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        text-align: right;
+        gap: 0.15rem;
+        font-size: 0.88rem;
+        color: var(--subtle);
+      }
+
       .day {
         font-size: 1.35rem;
         font-weight: 700;
@@ -85,134 +95,6 @@
       .header-location {
         font-size: 0.88rem;
         color: var(--subtle);
-      }
-
-      .header-controls {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.6rem;
-      }
-
-      .address-form {
-        margin: 0;
-        display: flex;
-      }
-
-      .address-combobox {
-        position: relative;
-        display: flex;
-        align-items: center;
-      }
-
-      .address-input {
-        height: 2.25rem;
-        padding: 0.5rem 0.75rem;
-        padding-right: 2.2rem;
-        border: 1px solid var(--line);
-        border-radius: 0.375rem;
-        background: var(--card);
-        color: var(--ink);
-        font-size: 0.88rem;
-        min-width: 360px;
-        transition: border-color 0.2s ease, background-color 0.2s ease;
-      }
-
-      .address-input::placeholder {
-        color: var(--subtle);
-        opacity: 0.7;
-      }
-
-      .address-input:hover {
-        border-color: var(--accent);
-        background-color: #f9fdfb;
-      }
-
-      .address-input:focus {
-        outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1);
-      }
-
-      .address-toggle {
-        position: absolute;
-        right: 0.35rem;
-        border: 0;
-        background: transparent;
-        color: var(--subtle);
-        font-size: 0.9rem;
-        cursor: pointer;
-        line-height: 1;
-        padding: 0.2rem;
-      }
-
-      .address-menu {
-        position: absolute;
-        top: calc(100% + 0.2rem);
-        left: 0;
-        right: 0;
-        list-style: none;
-        margin: 0;
-        padding: 0.25rem 0;
-        background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 0.375rem;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-        max-height: 240px;
-        overflow-y: auto;
-        z-index: 20;
-        display: none;
-      }
-
-      .address-menu.open {
-        display: block;
-      }
-
-      .address-menu-item {
-        width: 100%;
-        border: 0;
-        background: transparent;
-        text-align: left;
-        padding: 0.45rem 0.75rem;
-        font-size: 0.88rem;
-        color: var(--ink);
-        cursor: pointer;
-      }
-
-      .address-menu-item:hover {
-        background: #eef9f6;
-      }
-
-      .address-menu-empty {
-        padding: 0.45rem 0.75rem;
-        font-size: 0.84rem;
-        color: var(--subtle);
-      }
-
-      .date-form {
-        display: flex;
-        margin: 0;
-      }
-
-      .date-input {
-        height: 2.25rem;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid var(--line);
-        border-radius: 0.375rem;
-        background: var(--card);
-        color: var(--ink);
-        font-size: 0.88rem;
-        transition: border-color 0.2s ease, background-color 0.2s ease;
-      }
-
-      .date-input:hover {
-        border-color: var(--accent);
-        background-color: #f9fdfb;
-      }
-
-      .date-input:focus {
-        outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1);
       }
 
       .header-body {
@@ -305,26 +187,8 @@
         }
 
         .header-top-left,
-        .header-controls,
-        .header-location {
+        .header-meta {
           width: 100%;
-        }
-
-        .header-controls {
-          flex-wrap: wrap;
-          align-items: stretch;
-        }
-
-        .address-form,
-        .date-form {
-          width: 100%;
-        }
-
-        .address-combobox,
-        .address-input,
-        .date-input {
-          width: 100%;
-          min-width: 0;
         }
 
         .header-body {
@@ -443,11 +307,6 @@
           padding: 0.6rem 0.5rem;
           font-size: 0.86rem;
         }
-
-        .address-input,
-        .date-input {
-          font-size: 0.85rem;
-        }
       }
 
       .expandable {
@@ -555,13 +414,6 @@
   </head>
   <body>
     <script>
-      // Make page data available to JavaScript
-      window.__pageData = {
-        wasZipCodeOnly: {{wasZipCodeOnly}},
-        expandedAddress: "{{expandedAddress}}"
-      };
-    </script>
-    <script>
       // Convert title attributes to data-tooltip for custom styled tooltips.
       // Skip form controls where native title is used for browser hints.
       document.addEventListener("DOMContentLoaded", () => {
@@ -578,56 +430,29 @@
         <header class="header">
           <div class="header-top">
             <div class="header-top-left">
-              <div class="day">
-                {{dayDate}}
-                <span id="dateStatusBadge" class="date-status-badge">{{#if isHistoric}}Historic{{else}}{{#if isForecast}}Forecast{{/if}}{{/if}}</span>
+              <div>
+                <div class="day">
+                  {{dayDate}}
+                  <span id="dateStatusBadge" class="date-status-badge">{{#if isHistoric}}Historic{{else}}{{#if isForecast}}Forecast{{/if}}{{/if}}</span>
+                </div>
+                <div class="header-location">
+                  <div>{{streetLine}}</div>
+                  {{#if localityLine}}
+                    <div>{{localityLine}}</div>
+                  {{/if}}
+                  {{#if countryLine}}
+                    <div>{{countryLine}}</div>
+                  {{/if}}
+                  <div>{{coordinatesLine}}</div>
+                </div>
               </div>
+            </div>
+            <div class="header-meta">
+              <div>🌍&nbsp;{{timezone}}</div>
               {{#unless isViewingForecast}}
                 <div class="current-time">{{currentTime}}</div>
               {{/unless}}
-              <div class="header-controls">
-                <form id="addressForm" class="address-form">
-                  <div class="address-combobox">
-                    <input
-                      type="text"
-                      id="addressInput"
-                      class="address-input"
-                      placeholder="📍 Enter address..."
-                      autocomplete="off"
-                      title="Type or choose a recent address"
-                    />
-                    <button
-                      type="button"
-                      id="addressToggle"
-                      class="address-toggle"
-                      title="Show recent addresses"
-                      aria-label="Show recent addresses"
-                    >
-                      ▼
-                    </button>
-                    <ul id="addressMenu" class="address-menu"></ul>
-                  </div>
-                </form>
-                <form id="dateForm" class="date-form">
-                  <input
-                    type="date"
-                    id="dateInput"
-                    class="date-input"
-                    title="Select a date"
-                  />
-                </form>
-                <script>
-                  // Constrain date input max to ~15 days in future (API limit).
-                  const dateInput = document.getElementById('dateInput');
-                  const today = new Date();
-                  const maxDate = new Date(today);
-                  maxDate.setDate(maxDate.getDate() + 15);
-                  const maxDateStr = maxDate.toISOString().split('T')[0];
-                  dateInput.max = maxDateStr;
-                </script>
-              </div>
             </div>
-            <div class="header-location">🌍&nbsp;{{timezone}}</div>
           </div>
           <div class="header-body">
             <span class="icon-wrap" title="{{summary}} (code: {{iconCode}})">
@@ -640,7 +465,7 @@
               />
             </span>
             {{#unless isViewingForecast}}
-              <div class="temp-main">{{currentTemp}}<span class="temp-unit">°F</span></div>
+              <div class="temp-main">{{currentTemp}}<span class="temp-unit">°{{temperatureUnitLabel}}</span></div>
             {{/unless}}
             <div class="condition-block">
               <div class="condition-label" title="Current weather condition">{{summary}}</div>
@@ -653,12 +478,12 @@
           </div>
           <div class="stats-row">
             {{#unless isViewingForecast}}
-              <div class="stat" title="Current wind speed and direction">💨&nbsp;<strong>{{currentWindSpeed}} mph</strong>&nbsp;{{currentWindDir}}&nbsp;({{currentWindDeg}}°)</div>
-              <div class="stat" title="Current precipitation">🌧&nbsp;<strong>{{currentPrecip}} in</strong>&nbsp;now</div>
+              <div class="stat" title="Current wind speed and direction">💨&nbsp;<strong>{{currentWindSpeed}} {{windSpeedUnitLabel}}</strong>&nbsp;{{currentWindDir}}&nbsp;({{currentWindDeg}}°)</div>
+              <div class="stat" title="Current precipitation">🌧&nbsp;<strong>{{currentPrecip}} {{precipitationUnitLabel}}</strong>&nbsp;now</div>
               <div class="stat" title="Current relative humidity">💧&nbsp;<strong>{{relativeHumidity}}%</strong>&nbsp;humidity</div>
             {{/unless}}
-            <div class="stat" title="Maximum wind speed today">🌬&nbsp;Max wind:&nbsp;<strong>{{maxWindSpeed}} mph</strong></div>
-            <div class="stat" title="Maximum wind gusts today">💨&nbsp;Gusts:&nbsp;<strong>{{maxGusts}} mph</strong></div>
+            <div class="stat" title="Maximum wind speed today">🌬&nbsp;Max wind:&nbsp;<strong>{{maxWindSpeed}} {{windSpeedUnitLabel}}</strong></div>
+            <div class="stat" title="Maximum wind gusts today">💨&nbsp;Gusts:&nbsp;<strong>{{maxGusts}} {{windSpeedUnitLabel}}</strong></div>
             <div class="stat" title="Maximum precipitation probability for the selected day">☔&nbsp;Precip chance:&nbsp;<strong>{{precipitationProbabilityMax}}%</strong></div>
           </div>
           <div class="stats-row">
@@ -674,14 +499,14 @@
               <th title="Expand/collapse 15-minute forecast"></th>
               <th title="Weather icon and condition">Icon</th>
               <th title="Hour of day (24-hour format)">Hour</th>
-              <th title="Temperature in Fahrenheit">Temp (F)</th>
+              <th title="Temperature for the selected unit system">Temp ({{temperatureUnitLabel}})</th>
               <th title="Probability of precipitation during the hour">Precip (%)</th>
-              <th title="Total precipitation including rain, snow, and sleet">Precip (in)</th>
-              <th title="Wind speed in miles per hour">Wind (mph)</th>
+              <th title="Total precipitation including rain, snow, and sleet">Precip ({{precipitationUnitLabel}})</th>
+              <th title="Wind speed for the selected unit system">Wind ({{windSpeedUnitLabel}})</th>
               <th title="Wind direction (cardinal and degrees)">Direction</th>
-              <th title="Rainfall only">Rain (in)</th>
+              <th title="Rainfall only">Rain ({{precipitationUnitLabel}})</th>
               {{#if showSnowfall}}
-                <th title="Snowfall only">Snow (in)</th>
+                <th title="Snowfall only">Snow ({{precipitationUnitLabel}})</th>
               {{/if}}
             </tr>
           </thead>
@@ -726,9 +551,9 @@
                       <thead>
                         <tr>
                           <th title="15-minute interval time">Time</th>
-                          <th title="Air temperature in Fahrenheit">Temp (°F)</th>
-                          <th title="Rainfall accumulation in inches">Rain (in)</th>
-                          <th title="Horizontal visibility in meters">Visibility (m)</th>
+                          <th title="Air temperature for the selected unit system">Temp (°{{temperatureUnitLabel}})</th>
+                          <th title="Rainfall accumulation for the selected unit system">Rain ({{precipitationUnitLabel}})</th>
+                          <th title="Horizontal visibility for the selected unit system">Visibility ({{visibilityUnitLabel}})</th>
                           <th title="Duration of direct sunshine in seconds">Sunshine (s)</th>
                         </tr>
                       </thead>
@@ -762,186 +587,24 @@
       caret.classList.toggle('open', !isOpen);
     }
 
-    // Address history management with input field
-    (function initAddressHistory() {
-      const form = document.getElementById('addressForm');
-      const input = document.getElementById('addressInput');
-      const menu = document.getElementById('addressMenu');
-      const toggle = document.getElementById('addressToggle');
-      const STORAGE_KEY = 'weatherAddressHistory';
-      const MAX_HISTORY = 10;
-
-      // Get current address from URL parameters
-      function getCurrentAddress() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('address') || '';
-      }
-
-      // Load history from localStorage
-      function loadHistory() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-      }
-
-      // Save history to localStorage
-      function saveHistory(history) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-      }
-
-      // Add address to history and trim to MAX_HISTORY
-      function addToHistory(address) {
-        if (!address || address.trim() === '') return;
-
-        let history = loadHistory();
-        // Remove if already exists
-        history = history.filter(addr => addr !== address);
-        // Add to front
-        history.unshift(address);
-        // Keep only last MAX_HISTORY
-        history = history.slice(0, MAX_HISTORY);
-        saveHistory(history);
-        return history;
-      }
-
-      function navigateToAddress(address) {
-        addToHistory(address);
-        const url = new URL(window.location);
-        url.searchParams.set('address', address);
-        window.location.href = url.toString();
-      }
-
-      function renderMenu(filterText = '') {
-        const normalizedFilter = filterText.trim().toLowerCase();
-        const history = loadHistory().filter((addr) =>
-          addr.toLowerCase().includes(normalizedFilter),
-        );
-
-        menu.innerHTML = '';
-
-        if (history.length === 0) {
-          const empty = document.createElement('li');
-          empty.className = 'address-menu-empty';
-          empty.textContent = 'No prior addresses';
-          menu.appendChild(empty);
-          return;
-        }
-
-        history.forEach((address) => {
-          const row = document.createElement('li');
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'address-menu-item';
-          btn.textContent = address;
-          btn.addEventListener('click', function () {
-            input.value = address;
-            menu.classList.remove('open');
-            navigateToAddress(address);
-          });
-          row.appendChild(btn);
-          menu.appendChild(row);
-        });
-      }
-
-      function openMenu() {
-        renderMenu(input.value);
-        menu.classList.add('open');
-      }
-
-      function closeMenu() {
-        menu.classList.remove('open');
-      }
-
-      toggle.addEventListener('click', function () {
-        if (menu.classList.contains('open')) {
-          closeMenu();
-          return;
-        }
-        openMenu();
-        input.focus();
-      });
-
-      input.addEventListener('input', function () {
-        openMenu();
-      });
-
-      input.addEventListener('focus', function () {
-        renderMenu(input.value);
-      });
-
-      document.addEventListener('click', function (e) {
-        if (!form.contains(e.target)) {
-          closeMenu();
-        }
-      });
-
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const address = input.value.trim();
-        if (address) {
-          closeMenu();
-          navigateToAddress(address);
-        }
-      });
-
-      // Initialize on page load
-      const currentAddress = getCurrentAddress();
-      if (currentAddress) {
-        addToHistory(currentAddress);
-        // If zip code only, show the expanded address in the input
-        const displayAddress = (window.__pageData && window.__pageData.wasZipCodeOnly) 
-          ? window.__pageData.expandedAddress
-          : currentAddress;
-        input.value = displayAddress;
-      }
-      renderMenu();
-      closeMenu();
-    })();
-
-    // Date picker management
-    (function initDatePicker() {
-      const dateForm = document.getElementById('dateForm');
-      const dateInput = document.getElementById('dateInput');
-
-      // Get date from URL or default to today
-      function getDateFromURL() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('date') || '';
-      }
-
-      // Format date to YYYY-MM-DD
-      function formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
-
-      // Handle date change
-      dateInput.addEventListener('change', function(e) {
-        const selectedDate = e.target.value;
-        if (selectedDate) {
-          // Navigate with new date
-          const url = new URL(window.location);
-          url.searchParams.set('date', selectedDate);
-          window.location.href = url.toString();
-        }
-      });
-
-      // Initialize date input
-      const urlDate = getDateFromURL();
-      const todayKey = formatDate(new Date());
-      const displayDate = urlDate || todayKey;
-      dateInput.value = displayDate;
-
+    // Keep the date status badge in sync with the selected URL date.
+    (function initPageState() {
+      const params = new URLSearchParams(window.location.search);
+      const urlDate = params.get('date') || '';
+      const now = new Date();
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const dateStatusBadge = document.getElementById('dateStatusBadge');
-      if (dateStatusBadge) {
-        if (!urlDate || urlDate === todayKey) {
-          dateStatusBadge.textContent = '';
-        } else if (urlDate < todayKey) {
-          dateStatusBadge.textContent = 'Historic';
-        } else {
-          dateStatusBadge.textContent = 'Forecast';
-        }
+
+      if (!dateStatusBadge) {
+        return;
+      }
+
+      if (!urlDate || urlDate === todayKey) {
+        dateStatusBadge.textContent = '';
+      } else if (urlDate < todayKey) {
+        dateStatusBadge.textContent = 'Historic';
+      } else {
+        dateStatusBadge.textContent = 'Forecast';
       }
     })();
   </script>

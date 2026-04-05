@@ -10,6 +10,56 @@ export function add(a, b) {
     const c = 7;
     return a + b;
 }
+function isUsCountry(country) {
+    return !!country && /^usa?$|^united states$/i.test(country.trim());
+}
+/**
+ * Formats geocoded location data for header display.
+ *
+ * Layout:
+ * - Number Street
+ * - city, state zip
+ * - country (only if not USA)
+ * - lat, lon
+ */
+export function formatLocationDisplay(input) {
+    const addressParts = (input.formattedAddress ?? "")
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+    const streetFromParts = [input.streetNumber?.trim(), input.streetName?.trim()]
+        .filter(Boolean)
+        .join(" ");
+    const streetLine = streetFromParts ||
+        addressParts[0] ||
+        input.city?.trim() ||
+        `${input.latitude} ${input.longitude}`;
+    const city = input.city?.trim();
+    const state = input.state?.trim();
+    const zip = input.zipcode?.trim();
+    const localityLine = city && state
+        ? `${city}, ${state}${zip ? ` ${zip}` : ""}`
+        : city && zip
+            ? `${city} ${zip}`
+            : city
+                ? city
+                : state && zip
+                    ? `${state} ${zip}`
+                    : state
+                        ? state
+                        : zip
+                            ? zip
+                            : addressParts[1] || "";
+    const countryFromAddress = addressParts[addressParts.length - 1];
+    const country = input.country?.trim() || countryFromAddress;
+    const countryLine = country && !isUsCountry(country) ? country : undefined;
+    return {
+        streetLine,
+        localityLine,
+        countryLine,
+        coordinatesLine: `${input.latitude} ${input.longitude}`,
+    };
+}
 /**
  * Subtracts one number from another.
  *

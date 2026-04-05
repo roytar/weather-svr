@@ -1,5 +1,5 @@
 import { WeatherService } from "../services/weatherService.js";
-import { wmoToOpenWeatherIcon } from "../utils.js";
+import { formatLocationDisplay, wmoToOpenWeatherIcon } from "../utils.js";
 const weatherService = new WeatherService();
 /**
  * Converts wind direction in degrees to a 16-point compass direction.
@@ -71,13 +71,43 @@ function hourKeyInTimeZone(date, timeZone) {
     const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
     return `${year}-${month}-${day}-${hour}`;
 }
+function isAllowedAddressFormat(value) {
+    const normalized = value.trim();
+    if (!normalized)
+        return false;
+    const zipOnlyPattern = /^\d{5}(?:-\d{4})?$/;
+    if (zipOnlyPattern.test(normalized))
+        return true;
+    const cityStatePattern = /^[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?,\s*(?:[A-Za-z]{2}|[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?)$/;
+    if (cityStatePattern.test(normalized))
+        return true;
+    const fullAddressPattern = /^\d+[A-Za-z0-9\-/]*\s+.+/;
+    return fullAddressPattern.test(normalized);
+}
+function invalidAddressErrorMessage() {
+    return "Invalid address format. Allowed formats: ZIP only (e.g., 08873), city and state (e.g., Seattle, WA), or full address (e.g., 48 Darrow Street, Franklin Township, NJ 08873).";
+}
+/*
+{"level":50,"time":"04/04 6:01:18.570 PM ET","pid":50,"hostname":"srv-d781503uibrs73cvgvig-hibernate-66dfd8f957-mbvlg",
+"err":{"type":"Error",
+"message":"Weather API request failed: Daily API request limit exceeded. Please try again tomorrow.: Daily API request limit exceeded. Please try again tomorrow.",
+"stack":"Error: Weather API request failed: Daily API request limit exceeded. Please try again tomorrow.
+\n    at WeatherService.getWeatherData (file:///opt/render/project/src/dist/services/weatherService.js:147:34)\n
+  at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n
+ at async WeatherService.getWeatherForAddress (file:///opt/render/project/src/dist/services/weatherService.js:278:29)\n
+  at async Object.<anonymous> (file:///opt/render/project/src/dist/routes/weather.js:113:28)\ncaused by: Error: Daily API request limit exceeded.
+ Please try again tomorrow.\n    at /opt/render/project/src/node_modules/openmeteo/lib/index.js:34:23\n    at Generator.next (<anonymous>)\n
+ at fulfilled (/opt/render/project/src/node_modules/openmeteo/lib/index.js:5:58)\n
+ at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"},
+ "msg":"Weather API request failed: Daily API request limit exceeded. Please try again tomorrow."}
+*/
 /**
  * Registers weather endpoints for JSON, text, and day-view responses.
  *
  * @param fastify Fastify server instance.
  */
 export async function weatherRoutes(fastify) {
-    // GET /weather/day?address=<address>&date=<YYYY-MM-DD> - Returns one-day weather HTML (date optional, defaults to New York)
+    // GET /weather/day?address=<address>&date=<YYYY-MM-DD> - Returns one-day weather HTML for a selected location
     fastify.get("/weather/day", {
         schema: {
             querystring: {
@@ -85,19 +115,33 @@ export async function weatherRoutes(fastify) {
                 properties: {
                     address: { type: "string" },
                     date: { type: "string" },
+                    temperatureUnit: { type: "string" },
+                    unitSystem: { type: "string" },
                 },
             },
         },
     }, async (request, reply) => {
-        const { address = "New York", date } = request.query;
-        if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        const { address, date, temperatureUnit: rawTemperatureUnit, unitSystem: rawUnitSystem, } = request.query;
+        const normalizedAddress = address?.trim();
+        const normalizedDate = date?.trim() || undefined;
+        const temperatureUnit = rawTemperatureUnit === "celsius" ? "celsius" : "fahrenheit";
+        const unitSystem = rawUnitSystem === "metric" ? "metric" : "english";
+        if (!normalizedAddress) {
+            return reply.redirect("/");
+        }
+        if (!isAllowedAddressFormat(normalizedAddress)) {
+            return reply.code(400).send({
+                error: invalidAddressErrorMessage(),
+            });
+        }
+        if (normalizedDate && !/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
             return reply
                 .code(400)
                 .send({ error: "Invalid date format. Use YYYY-MM-DD" });
         }
         // Validate date is not too far in the future. Open-Meteo forecasts ~15 days ahead.
-        if (date) {
-            const requestedDate = new Date(date + "T00:00:00Z");
+        if (normalizedDate) {
+            const requestedDate = new Date(normalizedDate + "T00:00:00Z");
             const today = new Date();
             today.setUTCHours(0, 0, 0, 0);
             const maxFutureDate = new Date(today);
@@ -105,18 +149,22 @@ export async function weatherRoutes(fastify) {
             if (requestedDate > maxFutureDate) {
                 const maxDateStr = maxFutureDate.toISOString().split("T")[0];
                 return reply.code(400).send({
-                    error: `Date ${date} is too far in the future. Maximum available date is ${maxDateStr} (~16 days from today).`,
+                    error: `Date ${normalizedDate} is too far in the future. Maximum available date is ${maxDateStr} (~15 days from today).`,
                 });
             }
         }
         try {
-            const result = await weatherService.getWeatherForAddress(address, date
+            const result = await weatherService.getWeatherForAddress(normalizedAddress, normalizedDate
                 ? {
-                    startDate: date,
-                    endDate: date,
+                    startDate: normalizedDate,
+                    endDate: normalizedDate,
+                    temperatureUnit,
+                    unitSystem,
                 }
                 : {
                     forecastDays: 1,
+                    temperatureUnit,
+                    unitSystem,
                 });
             const timezone = Array.isArray(result.timezone)
                 ? result.timezone[0]
@@ -124,7 +172,7 @@ export async function weatherRoutes(fastify) {
             const now = new Date();
             const todayKey = dateKeyInTimeZone(now, timezone);
             const nowHourKey = hourKeyInTimeZone(now, timezone);
-            const selectedDayKey = date ?? todayKey;
+            const selectedDayKey = normalizedDate ?? todayKey;
             const selectedDailyIndex = result.weather.daily.time.findIndex((day) => dateKeyInTimeZone(day, timezone) === selectedDayKey);
             const selectedDayIndex = selectedDailyIndex >= 0 ? selectedDailyIndex : 0;
             const todayDailyIndex = result.weather.daily.time.findIndex((day) => dateKeyInTimeZone(day, timezone) === todayKey);
@@ -153,28 +201,11 @@ export async function weatherRoutes(fastify) {
             const headerIcon = isViewingForecast
                 ? wmoToOpenWeatherIcon(result.weather.daily.weather_code?.[selectedDayIndex] ?? 0, true)
                 : wmoToOpenWeatherIcon(result.weather.current.weather_code, isCurrentDaytime);
-            const locationText = result.location.wasZipCodeOnly
-                ? [
-                    result.location.city,
-                    result.location.state,
-                    result.location.zipcode,
-                ]
-                    .filter(Boolean)
-                    .join(", ")
-                : result.location.formattedAddress ||
-                    [
-                        result.location.city,
-                        result.location.state,
-                        result.location.zipcode,
-                        result.location.country,
-                    ]
-                        .filter(Boolean)
-                        .join(", ") ||
-                    `${result.location.latitude}, ${result.location.longitude}`;
-            // For zip-only searches, keep the input concise (city/state/zip only).
-            const expandedAddress = result.location.wasZipCodeOnly
-                ? locationText
-                : result.location.formattedAddress || locationText;
+            const { streetLine, localityLine, countryLine, coordinatesLine } = formatLocationDisplay(result.location);
+            const temperatureUnitLabel = temperatureUnit === "celsius" ? "C" : "F";
+            const windSpeedUnitLabel = unitSystem === "metric" ? "km/h" : "mph";
+            const precipitationUnitLabel = unitSystem === "metric" ? "cm" : "in";
+            const visibilityUnitLabel = unitSystem === "metric" ? "m" : "ft";
             const hourlyRows = result.weather.hourly.time
                 .map((hourTime, index) => ({
                 hourDayKey: dateKeyInTimeZone(hourTime, timezone),
@@ -264,15 +295,20 @@ export async function weatherRoutes(fastify) {
                     month: "long",
                     day: "numeric",
                 }),
-                location: locationText,
-                expandedAddress,
-                wasZipCodeOnly: result.location.wasZipCodeOnly || false,
+                streetLine,
+                localityLine,
+                countryLine,
+                coordinatesLine,
                 summary: headerIcon.summary,
                 iconCode: headerIcon.iconCode,
                 iconUrl: headerIcon.iconUrl,
                 meteoconUrl: headerIcon.meteoconUrl,
                 timezone,
                 isViewingForecast,
+                temperatureUnitLabel,
+                windSpeedUnitLabel,
+                precipitationUnitLabel,
+                visibilityUnitLabel,
                 // current conditions (today only)
                 currentTime: isViewingForecast
                     ? null
@@ -316,9 +352,15 @@ export async function weatherRoutes(fastify) {
             return reply.code(500).send({ error: "Failed to render weather page" });
         }
     });
-    // GET / - Redirect root to /weather/day with New York default
-    fastify.get("/", async (request, reply) => {
-        return reply.redirect("/weather/day?address=New%20York");
+    // GET / - Landing page for Weather Explorer
+    fastify.get("/", async (_request, reply) => {
+        const today = new Date();
+        const maxDate = new Date(today);
+        maxDate.setDate(maxDate.getDate() + 15);
+        return reply.view("landing.hbs", {
+            todayDate: today.toISOString().split("T")[0],
+            maxDate: maxDate.toISOString().split("T")[0],
+        });
     });
 }
 //# sourceMappingURL=weather.js.map

@@ -48,6 +48,8 @@ export interface GeocodeResult {
   latitude: number;
   longitude: number;
   formattedAddress?: string;
+  streetName?: string;
+  streetNumber?: string;
   country?: string;
   city?: string;
   state?: string;
