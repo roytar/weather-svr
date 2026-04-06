@@ -1045,14 +1045,22 @@ export function weatherRoutes(log: FastifyBaseLogger) {
       },
     );
 
-    // GET / - Landing page for Weather Explorer
+    // GET / - Default to the weather range landing page
     fastify.get("/", async (_request, reply) => {
       const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
       const maxDate = new Date(today);
-      maxDate.setDate(maxDate.getDate() + MAX_FORECAST_LOOKAHEAD_DAYS);
+      maxDate.setUTCDate(maxDate.getUTCDate() + MAX_FORECAST_LOOKAHEAD_DAYS);
+      const defaultEndDate = new Date(today);
+      defaultEndDate.setUTCDate(defaultEndDate.getUTCDate() + 4);
+      if (defaultEndDate > maxDate) {
+        defaultEndDate.setTime(maxDate.getTime());
+      }
 
-      return reply.view("landing.hbs", {
+      return reply.view("weather-range-landing.hbs", {
         todayDate: today.toISOString().split("T")[0],
+        defaultStartDate: today.toISOString().split("T")[0],
+        defaultEndDate: defaultEndDate.toISOString().split("T")[0],
         maxDate: maxDate.toISOString().split("T")[0],
       });
     });
