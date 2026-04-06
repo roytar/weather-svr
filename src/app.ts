@@ -1,4 +1,4 @@
-import Fastify, { FastifyInstance } from "fastify";
+import Fastify from "fastify";
 import fastifyView from "@fastify/view";
 import fastifyStatic from "@fastify/static";
 import handlebars from "handlebars";
@@ -9,44 +9,6 @@ import { cors } from "./plugins/index.js";
 import { newYorkIsoTimestamp } from "./utils/index.js";
 import rateLimit from "@fastify/rate-limit";
 import helmet from "@fastify/helmet";
-
-type RouteLogLevel = "info" | "warn" | "error";
-
-declare module "fastify" {
-  interface FastifyInstance {
-    logRouteEvent(
-      level: RouteLogLevel,
-      details: Record<string, unknown>,
-      message: string,
-    ): void;
-  }
-}
-
-/**
- * Writes route-specific log entries through the shared Fastify logger.
- *
- * @param level Log severity level.
- * @param details Structured metadata to include with the message.
- * @param message Human-readable log message.
- */
-function logRouteEvent(
-  this: FastifyInstance,
-  level: RouteLogLevel,
-  details: Record<string, unknown>,
-  message: string,
-): void {
-  if (level === "error") {
-    this.log.error(details, message);
-    return;
-  }
-
-  if (level === "warn") {
-    this.log.warn(details, message);
-    return;
-  }
-
-  this.log.info(details, message);
-}
 
 /**
  * Creates the Fastify application instance and configures structured logging.
@@ -59,11 +21,6 @@ const app = Fastify({
   // Use the custom hook below for request logs so static asset GETs can be skipped.
   disableRequestLogging: true,
 });
-
-/**
- * Makes the shared route logging helper available to all registered routes.
- */
-app.decorate("logRouteEvent", logRouteEvent);
 
 function shouldSkipHttpLog(url: string): boolean {
   return (
@@ -173,7 +130,7 @@ app.get("/favicon.ico", async (_request, reply) => {
 /**
  * Registers the weather feature routes, including HTML and API endpoints.
  */
-app.register(weatherRoutes);
+app.register(weatherRoutes(app.log));
 
 /**
  * Registers the health-check endpoint used for service monitoring.

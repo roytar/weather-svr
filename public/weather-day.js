@@ -1,6 +1,80 @@
-/* global window, document */
+/* global window, document, fetch */
 
-function toggleMinutely(idx) {
+function renderMinutelyRows(rows) {
+  return rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${row.time}</td>
+          <td>${row.temperature}</td>
+          <td>${row.rain}</td>
+          <td>${row.visibility}</td>
+          <td>${row.sunshine_duration}</td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+async function loadMinutelyDetails(row, idx) {
+  const detail = document.getElementById(`m15-${idx}`);
+  const body = document.getElementById(`m15-body-${idx}`);
+  const url = row.getAttribute("data-minutely-url");
+
+  if (!detail || !body || !url) {
+    return;
+  }
+
+  if (detail.dataset.loaded === "true" || detail.dataset.loading === "true") {
+    return;
+  }
+
+  detail.dataset.loading = "true";
+  body.innerHTML = `
+    <tr>
+      <td colspan="5">
+        <span class="loading-state">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Loading 15-minute details…</span>
+        </span>
+      </td>
+    </tr>
+  `;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const rows = Array.isArray(payload.rows) ? payload.rows : [];
+
+    body.innerHTML = rows.length
+      ? renderMinutelyRows(rows)
+      : `
+        <tr>
+          <td colspan="5">No 15-minute data is available for this hour.</td>
+        </tr>
+      `;
+    detail.dataset.loaded = "true";
+  } catch (_error) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="5">Unable to load 15-minute details right now.</td>
+      </tr>
+    `;
+  } finally {
+    detail.dataset.loading = "false";
+  }
+}
+
+async function toggleMinutely(row, idx) {
   const detail = document.getElementById(`m15-${idx}`);
   const caret = document.getElementById(`caret-${idx}`);
 
@@ -9,8 +83,15 @@ function toggleMinutely(idx) {
   }
 
   const isOpen = detail.style.display !== "none";
-  detail.style.display = isOpen ? "none" : "table-row";
-  caret.classList.toggle("open", !isOpen);
+  if (isOpen) {
+    detail.style.display = "none";
+    caret.classList.remove("open");
+    return;
+  }
+
+  detail.style.display = "table-row";
+  caret.classList.add("open");
+  await loadMinutelyDetails(row, idx);
 }
 
 function initTooltips() {
@@ -38,7 +119,7 @@ function initMinutelyToggleRows() {
     row.addEventListener("click", () => {
       const idx = row.getAttribute("data-minutely-toggle");
       if (idx !== null) {
-        toggleMinutely(idx);
+        void toggleMinutely(row, idx);
       }
     });
 
@@ -47,7 +128,7 @@ function initMinutelyToggleRows() {
         event.preventDefault();
         const idx = row.getAttribute("data-minutely-toggle");
         if (idx !== null) {
-          toggleMinutely(idx);
+          void toggleMinutely(row, idx);
         }
       }
     });

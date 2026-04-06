@@ -362,6 +362,29 @@
         border-bottom: 0;
       }
 
+      .loading-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        color: var(--subtle);
+      }
+
+      .spinner {
+        width: 0.95rem;
+        height: 0.95rem;
+        border: 2px solid rgba(15, 118, 110, 0.2);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        flex: 0 0 auto;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
       /* ── Custom tooltips ───────────────────────────────────────── */
       .icon-wrap {
         display: inline-block;
@@ -427,7 +450,9 @@
                   <span id="dateStatusBadge" class="date-status-badge">{{#if isHistoric}}Historic{{else}}{{#if isForecast}}Forecast{{/if}}{{/if}}</span>
                 </div>
                 <div class="header-location">
-                  <div>{{streetLine}}</div>
+                  {{#if streetLine}}
+                    <div>{{streetLine}}</div>
+                  {{/if}}
                   {{#if localityLine}}
                     <div>{{localityLine}}</div>
                   {{/if}}
@@ -505,7 +530,7 @@
             {{#each hourlyRows}}
               <tr
                 class="{{#if this.hasMinutely15}}expandable{{/if}}"
-                {{#if this.hasMinutely15}}data-minutely-toggle="{{@index}}"{{/if}}
+                {{#if this.hasMinutely15}}data-minutely-toggle="{{@index}}" data-minutely-url="{{this.minutelyUrl}}"{{/if}}
               >
                 <td>
                   {{#if this.hasMinutely15}}
@@ -536,7 +561,7 @@
                 {{/if}}
               </tr>
               {{#if this.hasMinutely15}}
-                <tr class="minutely-detail" id="m15-{{@index}}" style="display:none">
+                <tr class="minutely-detail" id="m15-{{@index}}" style="display:none" data-loaded="false">
                   <td colspan="{{#if ../showSnowfall}}10{{else}}9{{/if}}">
                     <table class="minutely-table">
                       <thead>
@@ -548,16 +573,10 @@
                           <th title="Duration of direct sunshine in seconds">Sunshine (s)</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {{#each this.minutely15}}
-                          <tr>
-                            <td>{{this.time}}</td>
-                            <td title="Temperature at {{this.time}}">{{this.temperature}}</td>
-                            <td title="Rain at {{this.time}}">{{this.rain}}</td>
-                            <td title="Visibility at {{this.time}}">{{this.visibility}}</td>
-                            <td title="Sunshine duration at {{this.time}}">{{this.sunshine_duration}}</td>
-                          </tr>
-                        {{/each}}
+                      <tbody id="m15-body-{{@index}}">
+                        <tr>
+                          <td colspan="5">Click to load 15-minute details.</td>
+                        </tr>
                       </tbody>
                     </table>
                   </td>

@@ -22,10 +22,11 @@ export interface LocationDisplayInput {
   city?: string;
   state?: string;
   zipcode?: string;
+  inputHasStreetAddress?: boolean;
 }
 
 export interface LocationDisplayOutput {
-  streetLine: string;
+  streetLine?: string;
   localityLine: string;
   countryLine?: string;
   coordinatesLine: string;
@@ -67,6 +68,139 @@ function isUsCountry(country?: string): boolean {
 }
 
 /**
+ * Builds a YYYY-MM-DD key for a date in a specific timezone.
+ *
+ * @param date Date to normalize.
+ * @param timeZone IANA timezone identifier.
+ * @returns Date key in YYYY-MM-DD format.
+ */
+export function dateKeyInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+  const month = parts.find((part) => part.type === "month")?.value ?? "00";
+  const day = parts.find((part) => part.type === "day")?.value ?? "00";
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Builds a YYYY-MM-DD-HH key for a date in a specific timezone.
+ *
+ * @param date Date to normalize.
+ * @param timeZone IANA timezone identifier.
+ * @returns Hour key in YYYY-MM-DD-HH format.
+ */
+export function hourKeyInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+  const month = parts.find((part) => part.type === "month")?.value ?? "00";
+  const day = parts.find((part) => part.type === "day")?.value ?? "00";
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+  return `${year}-${month}-${day}-${hour}`;
+}
+
+/**
+ * Converts wind direction in degrees to a 16-point compass direction.
+ *
+ * @param degrees Wind direction in degrees.
+ * @returns Cardinal/ordinal direction label.
+ */
+export function degreesToCardinal(degrees: number): string {
+  const normalized = ((degrees % 360) + 360) % 360;
+  const directions = [
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW",
+  ];
+  const index = Math.round(normalized / 22.5) % 16;
+  return directions[index];
+}
+
+/**
+ * Validates the supported address input formats for weather lookups.
+ *
+ * @param value Address string entered by the user.
+ * @returns True when the input matches ZIP-only, city/state, or full-address formats.
+ */
+export function isAllowedAddressFormat(value: string): boolean {
+  const normalized = value.trim();
+  if (!normalized) return false;
+
+  const zipOnlyPattern = /^\d{5}(?:-\d{4})?$/;
+  if (zipOnlyPattern.test(normalized)) return true;
+
+  const cityStatePattern =
+    /^[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?,\s*(?:[A-Za-z]{2}|[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?)$/;
+  if (cityStatePattern.test(normalized)) return true;
+
+  const fullAddressPattern = /^\d+[A-Za-z0-9\-/]*\s+.+/;
+  return fullAddressPattern.test(normalized);
+}
+
+/**
+ * Returns the shared validation message for unsupported address input.
+ *
+ * @returns User-facing address validation error message.
+ */
+export function invalidAddressErrorMessage(): string {
+  return "Invalid address format. Allowed formats: ZIP only (e.g., 08873), city and state (e.g., Seattle, WA), or full address (e.g., 48 Darrow Street, Franklin Township, NJ 08873).";
+}
+
+/**
+ * Validates a date string in YYYY-MM-DD format.
+ *
+ * @param value Date string to validate.
+ * @returns True when the date is a valid ISO calendar date.
+ */
+export function isValidIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00Z`);
+  return (
+    !Number.isNaN(parsedDate.getTime()) &&
+    parsedDate.toISOString().startsWith(value)
+  );
+}
+
+/**
+ * Validates an hour key string in YYYY-MM-DD-HH format.
+ *
+ * @param value Hour key to validate.
+ * @returns True when the key matches the supported hour-key format.
+ */
+export function isValidHourKey(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}-\d{2}$/.test(value);
+}
+
+/**
  * Formats geocoded location data for header display.
  *
  * Layout:
@@ -87,11 +221,12 @@ export function formatLocationDisplay(
     .filter(Boolean)
     .join(" ");
 
-  const streetLine =
-    streetFromParts ||
-    addressParts[0] ||
-    input.city?.trim() ||
-    `${input.latitude} ${input.longitude}`;
+  const shouldShowStreetLine =
+    input.inputHasStreetAddress ?? Boolean(streetFromParts || addressParts[0]);
+
+  const streetLine = shouldShowStreetLine
+    ? streetFromParts || addressParts[0]
+    : undefined;
 
   const city = input.city?.trim();
   const state = input.state?.trim();

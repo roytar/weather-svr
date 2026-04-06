@@ -17,6 +17,9 @@ function isZipCodeOnly(address) {
     // Match 5-digit zip (12345) or 5+4 zip (12345-6789)
     return /^\d{5}(-\d{4})?$/.test(trimmed);
 }
+function hasStreetAddressInput(address) {
+    return /^\d+[A-Za-z0-9\-/]*\s+.+$/.test(address.trim());
+}
 /**
  * Builds a numeric sequence from start to stop using a fixed interval.
  *
@@ -27,6 +30,9 @@ function isZipCodeOnly(address) {
  */
 const range = (start, stop, step) => Array.from({ length: (stop - start) / step }, (_, i) => start + i * step);
 export class WeatherService {
+    constructor(log) {
+        this.log = log;
+    }
     /**
      * Converts a free-form address (or zip code) into latitude/longitude and location metadata.
      * If only a zip code is provided, automatically looks up a street address within that zip code.
@@ -35,6 +41,7 @@ export class WeatherService {
      * @returns Normalized geocoding result with coordinates and formatted fields.
      */
     async geocodeAddress(address) {
+        this.log?.info({ address }, "geocoding address");
         try {
             const locations = await geocoder.geocode(address);
             if (locations.length === 0) {
@@ -42,6 +49,7 @@ export class WeatherService {
             }
             let location = locations[0];
             const wasZipCodeOnly = isZipCodeOnly(address);
+            const inputHasStreetAddress = hasStreetAddressInput(address);
             // If input was only a zip code, reverse-geocode the result to find a street address
             if (wasZipCodeOnly && location.latitude && location.longitude) {
                 const reverseResults = await geocoder.reverse({
@@ -53,7 +61,7 @@ export class WeatherService {
                     location = reverseResults[0];
                 }
             }
-            return {
+            const geocodeResult = {
                 latitude: location.latitude,
                 longitude: location.longitude,
                 formattedAddress: location.formattedAddress,
@@ -64,9 +72,17 @@ export class WeatherService {
                 state: location.state,
                 zipcode: location.zipcode,
                 wasZipCodeOnly,
+                inputHasStreetAddress,
             };
+            this.log?.info({
+                address,
+                latitude: geocodeResult.latitude,
+                longitude: geocodeResult.longitude,
+            }, "geocoding complete");
+            return geocodeResult;
         }
         catch (err) {
+            this.log?.error({ address, err }, "geocoding failed");
             const errorMessage = err instanceof Error ? err.message : String(err);
             const wrappedError = new Error(`Geocoding failed for ${address}: ${errorMessage}`);
             wrappedError.cause = err;
@@ -82,6 +98,7 @@ export class WeatherService {
      * @returns Current, hourly, and daily weather data mapped to the app model.
      */
     async getWeatherData(latitude, longitude, options = {}) {
+        this.log?.info({ latitude, longitude, options }, "fetching weather data");
         const tzTimezone = tzFind(latitude, longitude);
         const temperatureUnit = options.temperatureUnit === "celsius" ? "celsius" : "fahrenheit";
         const unitSystem = options.unitSystem === "metric" ? "metric" : "english";
@@ -138,14 +155,16 @@ export class WeatherService {
                 "wind_gusts_10m_max",
                 "precipitation_probability_max",
             ],
-            minutely_15: [
+        };
+        if (options.includeMinutely15) {
+            params.minutely_15 = [
                 "temperature_2m",
                 "rain",
                 "weather_code",
                 "visibility",
                 "sunshine_duration",
-            ],
-        };
+            ];
+        }
         if (options.startDate && options.endDate) {
             params.start_date = options.startDate;
             params.end_date = options.endDate;
@@ -161,6 +180,7 @@ export class WeatherService {
             responses = await fetchWeatherApi(url, params);
         }
         catch (err) {
+            this.log?.error({ latitude, longitude, options, err }, "weather api request failed");
             const errorMessage = err instanceof Error ? err.message : String(err);
             const wrappedError = new Error(`Weather API request failed: ${errorMessage}`);
             wrappedError.cause = err;
@@ -168,6 +188,12 @@ export class WeatherService {
         }
         const response = responses[0];
         const timezone = response.timezone();
+        this.log?.info({
+            latitude,
+            longitude,
+            timezone,
+            includeMinutely15: Boolean(options.includeMinutely15),
+        }, "weather data fetched");
         const current = response.current();
         const hourly = response.hourly();
         const daily = response.daily();
@@ -215,17 +241,27 @@ export class WeatherService {
                 wind_gusts_10m_max: daily.variables(7).valuesArray(),
                 precipitation_probability_max: daily.variables(8).valuesArray() || new Float32Array(),
             },
-            minutely15: {
-                time: Array.from({
-                    length: (Number(minutely15.timeEnd()) - Number(minutely15.time())) /
-                        minutely15.interval(),
-                }, (_, i) => new Date((Number(minutely15.time()) + i * minutely15.interval()) * 1000)),
-                temperature_2m: minutely15.variables(0).valuesArray(),
-                rain: convertNullablePrecipArray(minutely15.variables(1).valuesArray()),
-                weather_code: minutely15.variables(2).valuesArray(),
-                visibility: convertVisibilityArray(minutely15.variables(3).valuesArray()),
-                sunshine_duration: minutely15.variables(4).valuesArray(),
-            },
+            minutely15: minutely15
+                ? {
+                    time: Array.from({
+                        length: (Number(minutely15.timeEnd()) - Number(minutely15.time())) /
+                            minutely15.interval(),
+                    }, (_, i) => new Date((Number(minutely15.time()) + i * minutely15.interval()) *
+                        1000)),
+                    temperature_2m: minutely15.variables(0)?.valuesArray() ?? null,
+                    rain: convertNullablePrecipArray(minutely15.variables(1)?.valuesArray()),
+                    weather_code: minutely15.variables(2)?.valuesArray() ?? null,
+                    visibility: convertVisibilityArray(minutely15.variables(3)?.valuesArray()),
+                    sunshine_duration: minutely15.variables(4)?.valuesArray() ?? null,
+                }
+                : {
+                    time: [],
+                    temperature_2m: null,
+                    rain: null,
+                    weather_code: null,
+                    visibility: null,
+                    sunshine_duration: null,
+                },
         };
         return weatherData;
     }
@@ -274,8 +310,8 @@ export class WeatherService {
                 minute: "2-digit",
                 second: "2-digit",
             })} ${dailyIcon.summary} icon: ${dailyIcon.iconCode} ${dailyIcon.iconUrl} ${Math.round(weatherData.daily.temperature_2m_max[i])} ${Math.round(weatherData.daily.temperature_2m_min[i])} ${Math.round(weatherData.daily.wind_speed_10m_max[i])} ${Math.round(weatherData.daily.wind_gusts_10m_max[i])} precip%: ${Math.round(weatherData.daily.precipitation_probability_max[i] ?? 0)}\n`;
-            // Add hourly data for first few hours of each day
-            for (let hour = i * 24; hour < Math.min(i * 24 + 6, weatherData.hourly.time.length); hour++) {
+            // Add hourly data for the full 24-hour day.
+            for (let hour = i * 24; hour < Math.min(i * 24 + 24, weatherData.hourly.time.length); hour++) {
                 output += `  ${weatherData.hourly.time[hour].toLocaleString("en-US", {
                     timeZone: timezone || "America/New_York",
                     hour: "2-digit",
@@ -292,10 +328,17 @@ export class WeatherService {
      * @returns Weather payload including resolved location and timezone metadata.
      */
     async getWeatherForAddress(address, options = {}) {
+        this.log?.info({ address, options }, "resolving weather for address");
         const location = await this.geocodeAddress(address);
         const weatherData = await this.getWeatherData(location.latitude, location.longitude, options);
         // Get timezone from the weather response
         const tzTimezone = tzFind(location.latitude, location.longitude);
+        this.log?.info({
+            address,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            timezone: tzTimezone,
+        }, "resolved weather for address");
         return {
             location,
             timezone: tzTimezone,

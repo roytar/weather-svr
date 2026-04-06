@@ -1,3 +1,4 @@
+import { describe, expect, it } from "@jest/globals";
 import { formatLocationDisplay } from "../src/utils/index.js";
 
 describe("formatLocationDisplay", () => {
@@ -56,6 +57,25 @@ describe("formatLocationDisplay", () => {
       localityLine: "London NW1 6XE",
       countryLine: "United Kingdom",
       coordinatesLine: "51.5238 -0.1586",
+    });
+  });
+
+  it("omits the street line when the user did not enter a street address", () => {
+    expect(
+      formatLocationDisplay({
+        latitude: 47.6062,
+        longitude: -122.3321,
+        formattedAddress: "Seattle, Washington, USA",
+        city: "Seattle",
+        state: "Washington",
+        country: "USA",
+        inputHasStreetAddress: false,
+      }),
+    ).toEqual({
+      streetLine: undefined,
+      localityLine: "Seattle, Washington",
+      countryLine: undefined,
+      coordinatesLine: "47.6062 -122.3321",
     });
   });
 });

@@ -1,3 +1,4 @@
+import { expect, it } from "@jest/globals";
 import { add } from "../src/utils/index.js";
 // jest.mock("../src/config", () => ({
 //   debug: true,

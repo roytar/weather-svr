@@ -55,6 +55,7 @@ export interface GeocodeResult {
   state?: string;
   zipcode?: string;
   wasZipCodeOnly?: boolean;
+  inputHasStreetAddress?: boolean;
 }
 
 export interface WeatherResponse {

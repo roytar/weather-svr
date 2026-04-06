@@ -1,0 +1,728 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Explorer • Date Range Results</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --subtle: #4b5563;
+        --line: #dbe4ee;
+        --accent: #0f766e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 2rem 1rem;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background: radial-gradient(circle at top left, #e8f9f6, var(--bg) 45%);
+        color: var(--ink);
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
+      }
+
+      .header {
+        padding: 1.5rem 1.8rem;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(135deg, #edfaf7 0%, #f4f7fb 100%);
+      }
+
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .header-top-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .current-time {
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--accent);
+      }
+
+      .header-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        text-align: right;
+        gap: 0.15rem;
+        font-size: 0.88rem;
+        color: var(--subtle);
+      }
+
+      .day {
+        font-size: 1.35rem;
+        font-weight: 700;
+      }
+
+      .date-status-badge {
+        color: var(--accent);
+        font-size: 0.85rem;
+        margin-left: 0.5rem;
+        font-weight: 500;
+      }
+
+      .header-location {
+        font-size: 0.88rem;
+        color: var(--subtle);
+      }
+
+      .header-body {
+        display: flex;
+        align-items: center;
+        gap: 1.4rem;
+        margin-top: 1rem;
+      }
+
+      .weather-icon {
+        width: 100px;
+        height: 100px;
+        flex: 0 0 auto;
+        filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.18));
+      }
+
+      .temp-main {
+        font-size: 3.6rem;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--ink);
+      }
+
+      .temp-unit {
+        font-size: 1.6rem;
+        font-weight: 400;
+        vertical-align: super;
+      }
+
+      .condition-block {
+        flex: 1;
+      }
+
+      .condition-label {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      .hi-lo {
+        margin-top: 0.3rem;
+        font-size: 0.92rem;
+        color: var(--subtle);
+      }
+
+      .range-caption {
+        margin-top: 0.5rem;
+        font-size: 0.92rem;
+        color: var(--subtle);
+      }
+
+      .stats-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 1.6rem;
+        margin-top: 1rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid var(--line);
+        font-size: 0.88rem;
+        color: var(--subtle);
+      }
+
+      .stat {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        min-width: 0;
+      }
+
+      .stat strong {
+        color: var(--ink);
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        padding: 1rem 1.8rem 0;
+      }
+
+      .toolbar a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.55rem 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .toolbar a:hover {
+        background: #f0fdfa;
+      }
+
+      .table-shell {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 1rem 0 0;
+      }
+
+      table {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: collapse;
+      }
+
+      thead th {
+        text-align: right;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--subtle);
+        background: #f9fbfd;
+      }
+
+      thead th:first-child,
+      thead th:nth-child(2),
+      thead th:nth-child(3) {
+        text-align: left;
+      }
+
+      th,
+      td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      td:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      tbody tr:hover {
+        background: #f7fafc;
+      }
+
+      .day-cell {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .row-badge {
+        display: inline-block;
+        padding: 0.16rem 0.45rem;
+        border-radius: 999px;
+        background: #e6fffb;
+        color: #0f766e;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .day-icon {
+        width: 38px;
+        height: 38px;
+        display: block;
+      }
+
+      .expandable-row {
+        cursor: pointer;
+      }
+
+      .expandable-row:hover {
+        background: #eef4fb;
+      }
+
+      .caret {
+        display: inline-block;
+        font-size: 0.72rem;
+        color: var(--accent);
+        transition: transform 0.15s ease;
+        user-select: none;
+      }
+
+      .caret.open {
+        transform: rotate(90deg);
+      }
+
+      .day-detail-row > td {
+        padding: 0;
+        background: #f4f8ff;
+      }
+
+      .detail-card {
+        padding: 1rem;
+      }
+
+      .detail-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.9rem;
+      }
+
+      .detail-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .detail-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.88rem;
+      }
+
+      .detail-link:hover {
+        text-decoration: underline;
+      }
+
+      .detail-summary {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .detail-summary .day-icon {
+        width: 68px;
+        height: 68px;
+        flex: 0 0 auto;
+      }
+
+      .detail-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 1rem;
+        margin-top: 0.65rem;
+        font-size: 0.86rem;
+        color: var(--subtle);
+      }
+
+      .detail-table-shell {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .detail-table {
+        min-width: 760px;
+      }
+
+      .detail-table th {
+        text-align: right;
+      }
+
+      .detail-table th:first-child,
+      .detail-table th:nth-child(2),
+      .detail-table th:nth-child(3) {
+        text-align: left;
+      }
+
+      .detail-table td:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) {
+        text-align: right;
+      }
+
+      .hourly-expandable:hover {
+        background: #eef4fb;
+      }
+
+      .minutely-detail > td {
+        padding: 0;
+        background: #f8fbff;
+      }
+
+      .minutely-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+      }
+
+      .minutely-table th,
+      .minutely-table td {
+        padding: 0.4rem 0.85rem;
+        border-bottom: 1px solid #e5ecf4;
+        color: var(--subtle);
+        white-space: nowrap;
+      }
+
+      .minutely-table thead th {
+        background: #e8f0fe;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .minutely-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .loading-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        color: var(--subtle);
+      }
+
+      .spinner {
+        width: 0.95rem;
+        height: 0.95rem;
+        border: 2px solid rgba(15, 118, 110, 0.2);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        flex: 0 0 auto;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 900px) {
+        body {
+          padding: 1rem 0.75rem;
+        }
+
+        .header-top {
+          align-items: flex-start;
+        }
+
+        .header-top-left,
+        .header-meta {
+          width: 100%;
+        }
+
+        .header-body {
+          flex-wrap: wrap;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+
+        .condition-block {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .stats-row {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 0.65rem 1rem;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .header {
+          padding: 1rem;
+        }
+
+        .toolbar {
+          padding: 0.9rem 1rem 0;
+        }
+
+        th,
+        td {
+          padding: 0.6rem 0.5rem;
+          font-size: 0.86rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <header class="header">
+          <div class="header-top">
+            <div class="header-top-left">
+              <div>
+                <div class="day">
+                  {{dayDate}}
+                  <span class="date-status-badge">Range view</span>
+                </div>
+                <div class="header-location">
+                  {{#if streetLine}}
+                    <div>{{streetLine}}</div>
+                  {{/if}}
+                  {{#if localityLine}}
+                    <div>{{localityLine}}</div>
+                  {{/if}}
+                  {{#if countryLine}}
+                    <div>{{countryLine}}</div>
+                  {{/if}}
+                  <div>{{coordinatesLine}}</div>
+                </div>
+              </div>
+            </div>
+            <div class="header-meta">
+              <div>🌍&nbsp;{{timezone}}</div>
+              <div class="current-time">{{currentTime}}</div>
+            </div>
+          </div>
+          <div class="header-body">
+            <span title="{{summary}} (code: {{iconCode}})">
+              <img
+                class="weather-icon"
+                src="{{meteoconUrl}}"
+                alt="{{summary}}"
+                width="100"
+                height="100"
+              />
+            </span>
+            <div class="temp-main">{{currentTemp}}<span
+                class="temp-unit"
+              >°{{temperatureUnitLabel}}</span></div>
+            <div class="condition-block">
+              <div class="condition-label">{{summary}}</div>
+              <div class="hi-lo">
+                <span>H:&nbsp;<strong>{{highTemp}}°</strong></span>&nbsp;&nbsp;
+                <span>L:&nbsp;<strong>{{lowTemp}}°</strong></span>&nbsp;&nbsp;
+                <span>Feels like max:&nbsp;<strong
+                  >{{apparentTempMax}}°</strong></span>
+              </div>
+              <div class="range-caption">
+                Selected range:
+                <strong>{{rangeLabel}}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="stats-row">
+            <div class="stat">💨&nbsp;<strong>{{currentWindSpeed}}
+                {{windSpeedUnitLabel}}</strong>&nbsp;{{currentWindDir}}&nbsp;({{currentWindDeg}}°)</div>
+            <div class="stat">🌧&nbsp;<strong>{{currentPrecip}}
+                {{precipitationUnitLabel}}</strong>&nbsp;now</div>
+            <div class="stat">💧&nbsp;<strong
+              >{{relativeHumidity}}%</strong>&nbsp;humidity</div>
+            <div class="stat">🌬&nbsp;Max wind:&nbsp;<strong>{{maxWindSpeed}}
+                {{windSpeedUnitLabel}}</strong></div>
+            <div class="stat">💨&nbsp;Gusts:&nbsp;<strong>{{maxGusts}}
+                {{windSpeedUnitLabel}}</strong></div>
+            <div class="stat">☔&nbsp;Precip chance:&nbsp;<strong
+              >{{precipitationProbabilityMax}}%</strong></div>
+          </div>
+          <div class="stats-row">
+            <div class="stat">🌅&nbsp;<strong>{{sunriseTime}}</strong></div>
+            <div class="stat">🌇&nbsp;<strong>{{sunsetTime}}</strong></div>
+          </div>
+        </header>
+
+        <div class="toolbar">
+          <a href="/weather/range">Choose another range</a>
+          <a href="/">Single day page</a>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>Icon</th>
+                <th>Condition</th>
+                <th>High ({{temperatureUnitLabel}})</th>
+                <th>Low ({{temperatureUnitLabel}})</th>
+                <th>Feels Like Max ({{temperatureUnitLabel}})</th>
+                <th>Precip (%)</th>
+                <th>Wind ({{windSpeedUnitLabel}})</th>
+                <th>Gusts ({{windSpeedUnitLabel}})</th>
+                <th>Sunrise</th>
+                <th>Sunset</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each dailyRows}}
+                <tr class="expandable-row" data-day-toggle="{{@index}}">
+                  <td>
+                    <span class="day-cell">
+                      <span class="caret" id="day-caret-{{@index}}">&#9654;</span>
+                      <span>{{this.dayLabel}}</span>
+                      <span class="row-badge">{{this.badge}}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <img
+                      class="day-icon"
+                      src="{{this.meteoconUrl}}"
+                      alt="{{this.summary}}"
+                      width="38"
+                      height="38"
+                    />
+                  </td>
+                  <td>{{this.summary}}</td>
+                  <td>{{this.highTemp}}°</td>
+                  <td>{{this.lowTemp}}°</td>
+                  <td>{{this.apparentTempMax}}°</td>
+                  <td>{{this.precipitationProbabilityMax}}%</td>
+                  <td>{{this.maxWindSpeed}}</td>
+                  <td>{{this.maxGusts}}</td>
+                  <td>{{this.sunriseTime}}</td>
+                  <td>{{this.sunsetTime}}</td>
+                </tr>
+                <tr class="day-detail-row" id="day-detail-{{@index}}" style="display:none">
+                  <td colspan="11">
+                    <section class="detail-card">
+                      <div class="detail-card-header">
+                        <div>
+                          <div class="detail-title">
+                            <span>{{this.dayLabel}}</span>
+                            <span class="row-badge">{{this.badge}}</span>
+                          </div>
+                          <div class="condition-label">{{this.summary}}</div>
+                        </div>
+                        <a class="detail-link" href="{{this.dayUrl}}">Open full day page</a>
+                      </div>
+
+                      <div class="detail-summary">
+                        <img
+                          class="day-icon"
+                          src="{{this.meteoconUrl}}"
+                          alt="{{this.summary}}"
+                          width="68"
+                          height="68"
+                        />
+                        <div>
+                          <div class="hi-lo">
+                            <span>H:&nbsp;<strong>{{this.highTemp}}°</strong></span>&nbsp;&nbsp;
+                            <span>L:&nbsp;<strong>{{this.lowTemp}}°</strong></span>&nbsp;&nbsp;
+                            <span>Feels like max:&nbsp;<strong>{{this.apparentTempMax}}°</strong></span>
+                          </div>
+                          <div class="detail-stats">
+                            {{#if this.showCurrentConditions}}
+                              <div>🕒 <strong>{{this.currentTime}}</strong></div>
+                              <div>🌡️ <strong>{{this.currentTemp}}°{{@root.temperatureUnitLabel}}</strong></div>
+                              <div>💨 <strong>{{this.currentWindSpeed}} {{@root.windSpeedUnitLabel}}</strong> {{this.currentWindDir}} ({{this.currentWindDeg}}°)</div>
+                              <div>🌧 <strong>{{this.currentPrecip}} {{@root.precipitationUnitLabel}}</strong> now</div>
+                              <div>💧 <strong>{{this.relativeHumidity}}%</strong> humidity</div>
+                            {{/if}}
+                            <div>🌅 <strong>{{this.sunriseTime}}</strong></div>
+                            <div>🌇 <strong>{{this.sunsetTime}}</strong></div>
+                            <div>☔ <strong>{{this.precipitationProbabilityMax}}%</strong> precip chance</div>
+                            <div>💨 Gusts <strong>{{this.maxGusts}} {{@root.windSpeedUnitLabel}}</strong></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="detail-table-shell">
+                        <table class="detail-table">
+                          <thead>
+                            <tr>
+                              <th></th>
+                              <th>Icon</th>
+                              <th>Hour</th>
+                              <th>Temp ({{@root.temperatureUnitLabel}})</th>
+                              <th>Precip (%)</th>
+                              <th>Precip ({{@root.precipitationUnitLabel}})</th>
+                              <th>Wind ({{@root.windSpeedUnitLabel}})</th>
+                              <th>Direction</th>
+                              <th>Rain ({{@root.precipitationUnitLabel}})</th>
+                              {{#if this.showSnowfall}}
+                                <th>Snow ({{@root.precipitationUnitLabel}})</th>
+                              {{/if}}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {{#each this.hourlyRows}}
+                              <tr
+                                class="{{#if this.hasMinutely15}}hourly-expandable{{/if}}"
+                                {{#if this.hasMinutely15}}data-minutely-toggle="{{this.detailToggleId}}" data-minutely-url="{{this.minutelyUrl}}"{{/if}}
+                              >
+                                <td>
+                                  {{#if this.hasMinutely15}}
+                                    <span class="caret" id="caret-{{this.detailToggleId}}">&#9654;</span>
+                                  {{/if}}
+                                </td>
+                                <td>
+                                  <img
+                                    class="day-icon"
+                                    src="{{this.meteoconUrl}}"
+                                    alt="{{this.iconSummary}}"
+                                    width="38"
+                                    height="38"
+                                  />
+                                </td>
+                                <td>{{this.hour}}</td>
+                                <td>{{this.temperature}}</td>
+                                <td>{{this.precipitationProbability}}%</td>
+                                <td>{{this.precipitation}}</td>
+                                <td>{{this.windSpeed}}</td>
+                                <td>{{this.windDirectionCardinal}} ({{this.windDirectionDegrees}}&deg;)</td>
+                                <td>{{this.rain}}</td>
+                                {{#if ../showSnowfall}}
+                                  <td>{{this.snow}}</td>
+                                {{/if}}
+                              </tr>
+                              {{#if this.hasMinutely15}}
+                                <tr class="minutely-detail" id="m15-{{this.detailToggleId}}" style="display:none" data-loaded="false">
+                                  <td colspan="{{#if ../showSnowfall}}10{{else}}9{{/if}}">
+                                    <table class="minutely-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Time</th>
+                                          <th>Temp (°{{@root.temperatureUnitLabel}})</th>
+                                          <th>Rain ({{@root.precipitationUnitLabel}})</th>
+                                          <th>Visibility ({{@root.visibilityUnitLabel}})</th>
+                                          <th>Sunshine (s)</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody id="m15-body-{{this.detailToggleId}}">
+                                        <tr>
+                                          <td colspan="5">Click to load 15-minute details.</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </td>
+                                </tr>
+                              {{/if}}
+                            {{/each}}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </td>
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script src="/assets/weather-day.js" defer></script>
+    <script src="/assets/weather-range.js" defer></script>
+  </body>
+</html>
