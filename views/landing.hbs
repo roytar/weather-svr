@@ -332,15 +332,17 @@
   <body>
     <aside
       id="addressErrorToast"
-      class="error-toast"
+      class="error-toast{{#if errorMessage}} show{{/if}}"
       role="alert"
       aria-live="assertive"
-      aria-hidden="true"
+      aria-hidden="{{#if errorMessage}}false{{else}}true{{/if}}"
     >
       <div class="error-toast-icon" aria-hidden="true">⚠️</div>
       <div>
-        <p class="error-toast-title">Address format error</p>
-        <p id="addressErrorToastText" class="error-toast-body"></p>
+        <p class="error-toast-title">
+          {{#if errorMessage}}Weather data error{{else}}Address format error{{/if}}
+        </p>
+        <p id="addressErrorToastText" class="error-toast-body">{{errorMessage}}</p>
       </div>
       <button
         id="addressErrorToastClose"
@@ -369,6 +371,7 @@
                 type="text"
                 placeholder="08873 or Seattle, WA"
                 title="Enter a street address, city/state, or ZIP code"
+                value="{{address}}"
                 required
               />
             </div>
@@ -393,12 +396,17 @@
                     type="radio"
                     name="temperatureUnit"
                     value="fahrenheit"
-                    checked
+                    {{#if isCelsius}}{{else}}checked{{/if}}
                   />
                   Fahrenheit
                 </label>
                 <label>
-                  <input type="radio" name="temperatureUnit" value="celsius" />
+                  <input
+                    type="radio"
+                    name="temperatureUnit"
+                    value="celsius"
+                    {{#if isCelsius}}checked{{/if}}
+                  />
                   Celsius
                 </label>
               </div>
@@ -412,12 +420,17 @@
                     type="radio"
                     name="unitSystem"
                     value="english"
-                    checked
+                    {{#if isMetric}}{{else}}checked{{/if}}
                   />
                   English (in / ft / mph)
                 </label>
                 <label>
-                  <input type="radio" name="unitSystem" value="metric" />
+                  <input
+                    type="radio"
+                    name="unitSystem"
+                    value="metric"
+                    {{#if isMetric}}checked{{/if}}
+                  />
                   Metric (cm / m / km/h)
                 </label>
               </div>

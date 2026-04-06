@@ -48,11 +48,16 @@ async function loadMinutelyDetails(row, idx) {
       },
     });
 
+    const payload = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
+      const message =
+        typeof payload.error === "string" && payload.error.trim()
+          ? payload.error.trim()
+          : `Request failed with status ${response.status}`;
+      throw new Error(message);
     }
 
-    const payload = await response.json();
     const rows = Array.isArray(payload.rows) ? payload.rows : [];
 
     body.innerHTML = rows.length
@@ -63,10 +68,17 @@ async function loadMinutelyDetails(row, idx) {
         </tr>
       `;
     detail.dataset.loaded = "true";
-  } catch (_error) {
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message
+        ? error.message
+        : "Unable to load 15-minute details right now.";
+
     body.innerHTML = `
       <tr>
-        <td colspan="5">Unable to load 15-minute details right now.</td>
+        <td colspan="5">
+          <div class="inline-error-box">${message}</div>
+        </td>
       </tr>
     `;
   } finally {

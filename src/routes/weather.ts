@@ -87,6 +87,11 @@ export function weatherRoutes(log: FastifyBaseLogger) {
 
           return reply.type("text/plain").send(formattedOutput);
         } catch (error) {
+          const errorMessage =
+            error instanceof Error && error.message
+              ? error.message
+              : "Failed to fetch weather data";
+
           log.error(
             {
               address: normalizedAddress,
@@ -94,9 +99,7 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             },
             "failed to fetch weather text output",
           );
-          return reply
-            .code(500)
-            .send({ error: "Failed to fetch weather data" });
+          return reply.code(502).send({ error: errorMessage });
         }
       },
     );
@@ -229,6 +232,11 @@ export function weatherRoutes(log: FastifyBaseLogger) {
 
           return reply.send({ rows });
         } catch (error) {
+          const errorMessage =
+            error instanceof Error && error.message
+              ? error.message
+              : "Failed to load 15-minute weather data";
+
           log.error(
             {
               address: normalizedAddress,
@@ -240,8 +248,8 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             },
             "failed to load 15-minute weather details",
           );
-          return reply.code(500).send({
-            error: "Failed to load 15-minute weather data",
+          return reply.code(502).send({
+            error: errorMessage,
           });
         }
       },
@@ -561,6 +569,11 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             showSnowfall,
           });
         } catch (error) {
+          const errorMessage =
+            error instanceof Error && error.message
+              ? error.message
+              : "Failed to render weather page";
+
           log.error(
             {
               address: normalizedAddress,
@@ -571,9 +584,22 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             },
             "failed to render weather page",
           );
-          return reply
-            .code(500)
-            .send({ error: "Failed to render weather page" });
+
+          const today = new Date();
+          today.setUTCHours(0, 0, 0, 0);
+          const maxFutureDate = new Date(today);
+          maxFutureDate.setUTCDate(
+            maxFutureDate.getUTCDate() + MAX_FORECAST_LOOKAHEAD_DAYS,
+          );
+
+          return reply.code(502).view("landing.hbs", {
+            todayDate: normalizedDate ?? today.toISOString().split("T")[0],
+            maxDate: maxFutureDate.toISOString().split("T")[0],
+            address: normalizedAddress,
+            errorMessage,
+            isCelsius: temperatureUnit === "celsius",
+            isMetric: unitSystem === "metric",
+          });
         }
       },
     );
@@ -1027,6 +1053,11 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             dailyRows,
           });
         } catch (error) {
+          const errorMessage =
+            error instanceof Error && error.message
+              ? error.message
+              : "Failed to render weather range page";
+
           log.error(
             {
               address: normalizedAddress,
@@ -1038,9 +1069,17 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             },
             "failed to render weather range page",
           );
-          return reply
-            .code(500)
-            .send({ error: "Failed to render weather range page" });
+          return reply.code(502).view("weather-range-landing.hbs", {
+            todayDate,
+            defaultStartDate: normalizedStartDate ?? todayDate,
+            defaultEndDate:
+              normalizedEndDate ?? defaultEndDate.toISOString().split("T")[0],
+            maxDate,
+            address: normalizedAddress,
+            errorMessage,
+            isCelsius: temperatureUnit === "celsius",
+            isMetric: unitSystem === "metric",
+          });
         }
       },
     );
