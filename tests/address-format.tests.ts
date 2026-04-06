@@ -1,4 +1,4 @@
-import { formatLocationDisplay } from "../src/utils";
+import { formatLocationDisplay } from "../src/utils/index.js";
 
 describe("formatLocationDisplay", () => {
   it("prefers explicit street number and name fields", () => {

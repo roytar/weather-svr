@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { WeatherService } from "../services/weatherService.js";
-import { formatLocationDisplay, wmoToOpenWeatherIcon } from "../utils.js";
+import { formatLocationDisplay, wmoToOpenWeatherIcon } from "../utils/index.js";
 
 const weatherService = new WeatherService();
 
@@ -459,7 +459,17 @@ export async function weatherRoutes(fastify: FastifyInstance) {
           showSnowfall,
         });
       } catch (error) {
-        fastify.log.error(error);
+        fastify.logRouteEvent(
+          "error",
+          {
+            address: normalizedAddress,
+            date: normalizedDate,
+            temperatureUnit,
+            unitSystem,
+            error,
+          },
+          "failed to render weather page",
+        );
         return reply.code(500).send({ error: "Failed to render weather page" });
       }
     },

@@ -2,7 +2,7 @@ import { fetchWeatherApi } from "openmeteo";
 import { WeatherApiResponse } from "@openmeteo/sdk/weather-api-response.js";
 import nodeGeocoder from "node-geocoder";
 import { find as tzFind } from "geo-tz/now";
-import { wmoToOpenWeatherIcon } from "../utils.js";
+import { wmoToOpenWeatherIcon } from "../utils/index.js";
 import {
   WeatherData,
   GeocodeResult,

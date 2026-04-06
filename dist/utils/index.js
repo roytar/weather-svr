@@ -10,6 +10,32 @@ export function add(a, b) {
     const c = 7;
     return a + b;
 }
+/**
+ * Formats a Date into short 12-hour America/New_York time with AM/PM.
+ *
+ * @param date Date instance to format.
+ * @returns Readable timestamp string suitable for structured logs.
+ */
+export function newYorkIsoTimestamp(date) {
+    const millis = String(date.getMilliseconds()).padStart(3, "0");
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+    }).formatToParts(date);
+    const getPart = (type) => parts.find((part) => part.type === type)?.value ?? "";
+    const month = getPart("month");
+    const day = getPart("day");
+    const hour = getPart("hour");
+    const minute = getPart("minute");
+    const second = getPart("second");
+    const dayPeriod = getPart("dayPeriod");
+    return `${month}/${day} ${hour}:${minute}:${second}.${millis} ${dayPeriod} ET`;
+}
 function isUsCountry(country) {
     return !!country && /^usa?$|^united states$/i.test(country.trim());
 }
@@ -175,4 +201,4 @@ export function wmoToOpenWeatherIcon(wmoCode, isDay) {
         meteoconUrl: meteoconUrl(iconCode, isDay),
     };
 }
-//# sourceMappingURL=utils.js.map
+//# sourceMappingURL=index.js.map

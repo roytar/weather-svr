@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -21,7 +22,9 @@
       body {
         margin: 0;
         padding: 2rem 1rem;
-        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
         background: radial-gradient(circle at top left, #e8f9f6, var(--bg) 45%);
         color: var(--ink);
       }
@@ -413,18 +416,6 @@
     </style>
   </head>
   <body>
-    <script>
-      // Convert title attributes to data-tooltip for custom styled tooltips.
-      // Skip form controls where native title is used for browser hints.
-      document.addEventListener("DOMContentLoaded", () => {
-        const skip = new Set(["INPUT", "TEXTAREA", "SELECT", "BUTTON"]);
-        document.querySelectorAll("[title]").forEach((el) => {
-          if (skip.has(el.tagName)) return;
-          el.dataset.tooltip = el.getAttribute("title");
-          el.removeAttribute("title");
-        });
-      });
-    </script>
     <main class="wrap">
       <section class="card">
         <header class="header">
@@ -514,7 +505,7 @@
             {{#each hourlyRows}}
               <tr
                 class="{{#if this.hasMinutely15}}expandable{{/if}}"
-                {{#if this.hasMinutely15}}onclick="toggleMinutely({{@index}})"{{/if}}
+                {{#if this.hasMinutely15}}data-minutely-toggle="{{@index}}"{{/if}}
               >
                 <td>
                   {{#if this.hasMinutely15}}
@@ -578,35 +569,6 @@
         </div>
       </section>
     </main>
-  <script>
-    function toggleMinutely(idx) {
-      const detail = document.getElementById('m15-' + idx);
-      const caret = document.getElementById('caret-' + idx);
-      const isOpen = detail.style.display !== 'none';
-      detail.style.display = isOpen ? 'none' : 'table-row';
-      caret.classList.toggle('open', !isOpen);
-    }
-
-    // Keep the date status badge in sync with the selected URL date.
-    (function initPageState() {
-      const params = new URLSearchParams(window.location.search);
-      const urlDate = params.get('date') || '';
-      const now = new Date();
-      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const dateStatusBadge = document.getElementById('dateStatusBadge');
-
-      if (!dateStatusBadge) {
-        return;
-      }
-
-      if (!urlDate || urlDate === todayKey) {
-        dateStatusBadge.textContent = '';
-      } else if (urlDate < todayKey) {
-        dateStatusBadge.textContent = 'Historic';
-      } else {
-        dateStatusBadge.textContent = 'Forecast';
-      }
-    })();
-  </script>
+    <script src="/assets/weather-day.js" defer></script>
   </body>
 </html>

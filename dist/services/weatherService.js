@@ -1,7 +1,7 @@
 import { fetchWeatherApi } from "openmeteo";
 import nodeGeocoder from "node-geocoder";
 import { find as tzFind } from "geo-tz/now";
-import { wmoToOpenWeatherIcon } from "../utils.js";
+import { wmoToOpenWeatherIcon } from "../utils/index.js";
 const geocoder = nodeGeocoder({
     provider: "openstreetmap",
     formatter: null,

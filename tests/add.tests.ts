@@ -1,4 +1,4 @@
-import { add } from "../src/utils";
+import { add } from "../src/utils/index.js";
 // jest.mock("../src/config", () => ({
 //   debug: true,
 // }));

@@ -31,6 +31,37 @@ export interface LocationDisplayOutput {
   coordinatesLine: string;
 }
 
+/**
+ * Formats a Date into short 12-hour America/New_York time with AM/PM.
+ *
+ * @param date Date instance to format.
+ * @returns Readable timestamp string suitable for structured logs.
+ */
+export function newYorkIsoTimestamp(date: Date): string {
+  const millis = String(date.getMilliseconds()).padStart(3, "0");
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).formatToParts(date);
+
+  const getPart = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  const month = getPart("month");
+  const day = getPart("day");
+  const hour = getPart("hour");
+  const minute = getPart("minute");
+  const second = getPart("second");
+  const dayPeriod = getPart("dayPeriod");
+
+  return `${month}/${day} ${hour}:${minute}:${second}.${millis} ${dayPeriod} ET`;
+}
+
 function isUsCountry(country?: string): boolean {
   return !!country && /^usa?$|^united states$/i.test(country.trim());
 }
