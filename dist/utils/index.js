@@ -110,10 +110,39 @@ export function degreesToCardinal(degrees) {
     return directions[index];
 }
 /**
+ * Parses a latitude/longitude string in decimal degrees.
+ *
+ * Supported format: `lat, lon` with optional whitespace and +/- signs.
+ *
+ * @param value Raw user-entered coordinate string.
+ * @returns Parsed coordinates when valid and in range; otherwise `null`.
+ */
+export function parseLatLonInput(value) {
+    const normalized = value.trim();
+    if (!normalized) {
+        return null;
+    }
+    const match = normalized.match(/^([+-]?\d{1,2}(?:\.\d+)?)\s*,\s*([+-]?\d{1,3}(?:\.\d+)?)$/);
+    if (!match) {
+        return null;
+    }
+    const latitude = Number.parseFloat(match[1]);
+    const longitude = Number.parseFloat(match[2]);
+    if (Number.isNaN(latitude) ||
+        Number.isNaN(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180) {
+        return null;
+    }
+    return { latitude, longitude };
+}
+/**
  * Validates the supported address input formats for weather lookups.
  *
  * @param value Address string entered by the user.
- * @returns True when the input matches ZIP-only, city/state, or full-address formats.
+ * @returns True when the input matches ZIP-only, city/state, lat/lon, or full-address formats.
  */
 export function isAllowedAddressFormat(value) {
     const normalized = value.trim();
@@ -121,6 +150,8 @@ export function isAllowedAddressFormat(value) {
         return false;
     const zipOnlyPattern = /^\d{5}(?:-\d{4})?$/;
     if (zipOnlyPattern.test(normalized))
+        return true;
+    if (parseLatLonInput(normalized))
         return true;
     const cityStatePattern = /^[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?,\s*(?:[A-Za-z]{2}|[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?)$/;
     if (cityStatePattern.test(normalized))
@@ -134,7 +165,7 @@ export function isAllowedAddressFormat(value) {
  * @returns User-facing address validation error message.
  */
 export function invalidAddressErrorMessage() {
-    return "Invalid address format. Allowed formats: ZIP only (e.g., 08873), city and state (e.g., Seattle, WA), or full address (e.g., 48 Darrow Street, Franklin Township, NJ 08873).";
+    return "Invalid address format. Allowed formats: ZIP only (e.g., 08873), city and state (e.g., Seattle, WA), latitude/longitude (e.g., 40.7128, -74.0060), or full address (e.g., 48 Darrow Street, Franklin Township, NJ 08873).";
 }
 /**
  * Validates a date string in YYYY-MM-DD format.

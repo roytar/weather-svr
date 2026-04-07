@@ -3,7 +3,7 @@ import { WeatherApiResponse } from "@openmeteo/sdk/weather-api-response.js";
 import { FastifyBaseLogger } from "fastify";
 import nodeGeocoder from "node-geocoder";
 import { find as tzFind } from "geo-tz/now";
-import { wmoToOpenWeatherIcon } from "../utils/index.js";
+import { parseLatLonInput, wmoToOpenWeatherIcon } from "../utils/index.js";
 import {
   WeatherData,
   GeocodeResult,
@@ -58,42 +58,65 @@ export class WeatherService {
   constructor(private readonly log?: FastifyBaseLogger) {}
 
   /**
-   * Converts a free-form address (or zip code) into latitude/longitude and location metadata.
+   * Converts a free-form address, ZIP code, or `lat, lon` input into coordinates and location metadata.
    * If only a zip code is provided, automatically looks up a street address within that zip code.
    *
-   * @param address Human-readable address, place name, or zip code.
+   * @param address Human-readable address, place name, ZIP code, or coordinates.
    * @returns Normalized geocoding result with coordinates and formatted fields.
    */
   async geocodeAddress(address: string): Promise<GeocodeResult> {
     this.log?.info({ address }, "geocoding address");
 
     try {
-      const locations = await geocoder.geocode(address);
-
-      if (locations.length === 0) {
-        throw new Error(`No geocoding results for ${address}`);
-      }
-
-      let location = locations[0];
       const wasZipCodeOnly = isZipCodeOnly(address);
-      const inputHasStreetAddress = hasStreetAddressInput(address);
+      const parsedLatLon = parseLatLonInput(address);
+      const inputHasStreetAddress =
+        !parsedLatLon && hasStreetAddressInput(address);
 
-      // If input was only a zip code, reverse-geocode the result to find a street address
-      if (wasZipCodeOnly && location.latitude && location.longitude) {
+      let location;
+
+      if (parsedLatLon) {
+        this.log?.info(
+          { address, ...parsedLatLon },
+          "reverse geocoding coordinates",
+        );
+
         const reverseResults = await geocoder.reverse({
-          lat: location.latitude,
-          lon: location.longitude,
+          lat: parsedLatLon.latitude,
+          lon: parsedLatLon.longitude,
         });
 
-        if (reverseResults.length > 0) {
-          // Use the first street address from reverse geocoding
-          location = reverseResults[0];
+        location = reverseResults[0] ?? {
+          latitude: parsedLatLon.latitude,
+          longitude: parsedLatLon.longitude,
+          formattedAddress: `${parsedLatLon.latitude}, ${parsedLatLon.longitude}`,
+        };
+      } else {
+        const locations = await geocoder.geocode(address);
+
+        if (locations.length === 0) {
+          throw new Error(`No geocoding results for ${address}`);
+        }
+
+        location = locations[0];
+
+        // If input was only a zip code, reverse-geocode the result to find a street address
+        if (wasZipCodeOnly && location.latitude && location.longitude) {
+          const reverseResults = await geocoder.reverse({
+            lat: location.latitude,
+            lon: location.longitude,
+          });
+
+          if (reverseResults.length > 0) {
+            // Use the first street address from reverse geocoding
+            location = reverseResults[0];
+          }
         }
       }
 
       const geocodeResult = {
-        latitude: location.latitude!,
-        longitude: location.longitude!,
+        latitude: parsedLatLon?.latitude ?? location.latitude!,
+        longitude: parsedLatLon?.longitude ?? location.longitude!,
         formattedAddress: location.formattedAddress,
         streetName: location.streetName,
         streetNumber: location.streetNumber,

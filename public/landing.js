@@ -14,12 +14,14 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   const formatErrorMessage =
-    "Invalid address format. Use ZIP only (08873), city and state (Seattle, WA), or full address i.e. (24 Lake Ave, Somerset, NJ 08873).";
+    "Invalid address format. Use ZIP only (08873), city and state (Seattle, WA), latitude/longitude (40.7128, -74.0060), or a full address (24 Lake Ave, Somerset, NJ 08873).";
   const requiredErrorMessage = "Please enter an address.";
   const dateRequiredErrorMessage =
     "Please choose both a start date and an end date.";
   const dateOrderErrorMessage = "End date must be on or after the start date.";
   const zipOnlyPattern = /^\d{5}(?:-\d{4})?$/;
+  const latLonPattern =
+    /^([+-]?\d{1,2}(?:\.\d+)?)\s*,\s*([+-]?\d{1,3}(?:\.\d+)?)$/;
   const cityStatePattern =
     /^[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?,\s*(?:[A-Za-z]{2}|[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?)$/;
   const fullAddressPattern = /^\d+[A-Za-z0-9\-/]*\s+.+$/;
@@ -62,6 +64,24 @@ window.addEventListener("DOMContentLoaded", () => {
     const normalized = value.trim();
     if (!normalized) return false;
     if (zipOnlyPattern.test(normalized)) return true;
+
+    const latLonMatch = normalized.match(latLonPattern);
+    if (latLonMatch) {
+      const latitude = Number.parseFloat(latLonMatch[1]);
+      const longitude = Number.parseFloat(latLonMatch[2]);
+
+      if (
+        !Number.isNaN(latitude) &&
+        !Number.isNaN(longitude) &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180
+      ) {
+        return true;
+      }
+    }
+
     if (cityStatePattern.test(normalized)) return true;
     return fullAddressPattern.test(normalized);
   }

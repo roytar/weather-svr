@@ -364,13 +364,13 @@
         <form class="search-form" action="/weather/day" method="get" novalidate>
           <div class="field-grid">
             <div class="field">
-              <label for="address">Address or ZIP code</label>
+              <label for="address">Address, ZIP, or lat/lon</label>
               <input
                 id="address"
                 name="address"
                 type="text"
-                placeholder="08873 or Seattle, WA"
-                title="Enter a street address, city/state, or ZIP code"
+                placeholder="08873, Seattle, WA, or 40.7128, -74.0060"
+                title="Enter a street address, city/state, ZIP code, or latitude/longitude"
                 value="{{address}}"
                 required
               />

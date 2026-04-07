@@ -1,5 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatLocationDisplay } from "../src/utils/index.js";
+import {
+  formatLocationDisplay,
+  isAllowedAddressFormat,
+} from "../src/utils/index.js";
 
 describe("formatLocationDisplay", () => {
   it("prefers explicit street number and name fields", () => {
@@ -77,5 +80,15 @@ describe("formatLocationDisplay", () => {
       countryLine: undefined,
       coordinatesLine: "47.6062 -122.3321",
     });
+  });
+});
+
+describe("isAllowedAddressFormat", () => {
+  it("accepts latitude and longitude input", () => {
+    expect(isAllowedAddressFormat("40.7128, -74.0060")).toBe(true);
+  });
+
+  it("rejects out-of-range latitude and longitude input", () => {
+    expect(isAllowedAddressFormat("140.7128, -274.0060")).toBe(false);
   });
 });
