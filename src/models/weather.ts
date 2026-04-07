@@ -56,6 +56,11 @@ export interface GeocodeResult {
   zipcode?: string;
   wasZipCodeOnly?: boolean;
   inputHasStreetAddress?: boolean;
+  boundingBox?: {
+    lowerLeft: { latitude: number; longitude: number };
+    upperRight: { latitude: number; longitude: number };
+    center: { latitude: number; longitude: number };
+  };
 }
 
 export interface WeatherResponse {

@@ -60,6 +60,44 @@ window.addEventListener("DOMContentLoaded", () => {
     toast.setAttribute("aria-hidden", "true");
   }
 
+  function parseBoundingBoxInput(value) {
+    const normalized = value.trim();
+    if (!normalized) return null;
+
+    try {
+      const parsed = JSON.parse(normalized);
+      const lowerLeft = parsed?.lowerLeft;
+      const upperRight = parsed?.upperRight;
+      const lowerLat = Number.parseFloat(String(lowerLeft?.lat));
+      const lowerLon = Number.parseFloat(String(lowerLeft?.lon));
+      const upperLat = Number.parseFloat(String(upperRight?.lat));
+      const upperLon = Number.parseFloat(String(upperRight?.lon));
+
+      if (
+        Number.isNaN(lowerLat) ||
+        Number.isNaN(lowerLon) ||
+        Number.isNaN(upperLat) ||
+        Number.isNaN(upperLon) ||
+        lowerLat < -90 ||
+        lowerLat > 90 ||
+        upperLat < -90 ||
+        upperLat > 90 ||
+        lowerLon < -180 ||
+        lowerLon > 180 ||
+        upperLon < -180 ||
+        upperLon > 180 ||
+        lowerLat >= upperLat ||
+        lowerLon >= upperLon
+      ) {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
   function isAllowedAddressFormat(value) {
     const normalized = value.trim();
     if (!normalized) return false;
@@ -82,6 +120,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    if (parseBoundingBoxInput(normalized)) return true;
     if (cityStatePattern.test(normalized)) return true;
     return fullAddressPattern.test(normalized);
   }

@@ -1,11 +1,12 @@
 # Weather Explorer
 
-A Fastify + TypeScript weather app that lets you look up forecast data by **full address**, **city/state**, **ZIP code**, or **latitude/longitude**.
+A Fastify + TypeScript weather app that lets you look up forecast data by **full address**, **city/state**, **ZIP code**, or **latitude/longitude**, and also explore weather interactively on a map.
 
 It provides:
 
 - a **single-day detailed view** with hourly breakdowns
 - a **date-range explorer** with one row per day
+- an **interactive map page** with pin drops and bounding-box selection
 - a **plain-text weather endpoint**
 - lazy-loaded **15-minute detail data** for selected hours
 
@@ -15,8 +16,10 @@ It provides:
 
 - 🌤️ Address lookup and reverse geocoding
 - 📍 Coordinate input such as `40.7128, -74.0060`
+- �️ Interactive Leaflet/OpenStreetMap weather map with pin and bounding-box selection
 - 📅 Single-day and multi-day weather views
 - ⏱️ Lazy 15-minute detail loading for better performance
+- 🌦️ On-map weather badge with icon, temperature, rainfall, and wind summary
 - 🧭 English/metric unit options
 - 🛡️ Security middleware via Helmet and rate limiting
 - 🧪 TypeScript, Jest, and ESLint setup
@@ -50,6 +53,7 @@ Additional inputs:
 - `/` → default landing page for the range explorer
 - `/weather/day` → detailed day view with hourly rows
 - `/weather/range` → multi-day range view with expandable daily details
+- `/weather/map` → interactive map with browser-location centering, pin drops, and bounding-box weather preview
 
 ### API-style responses
 
@@ -90,11 +94,13 @@ public/
   weather-icons/         Local weather SVG assets
   landing.js             Client-side form validation
   weather-day.js         Lazy minutely fetch for day view
+  weather-map.js         Map interactions, pin/bbox selection, overlay badge
   weather-range.js       Expand/collapse behavior for range view
 
 views/
   landing.hbs            Single-day landing page
   weather-day.hbs        Single-day results page
+  weather-map.hbs        Interactive Leaflet/OpenStreetMap page
   weather-range-landing.hbs  Range landing page
   weather-range.hbs      Range results page
 
@@ -179,7 +185,8 @@ http://localhost:3000/
 3. The app requests forecast data from Open-Meteo.
 4. Fastify routes shape the data for HTML, text, or JSON responses.
 5. Handlebars templates render the weather UI.
-6. Client-side JS loads extra 15-minute detail rows only when needed.
+6. The map page uses Leaflet + OpenStreetMap so users can drop pins or draw a bounding box and preview weather visually.
+7. Client-side JS loads extra 15-minute detail rows only when needed.
 
 ---
 

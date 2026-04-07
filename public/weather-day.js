@@ -167,8 +167,41 @@ function initPageState() {
   }
 }
 
+function initMobileScrollHint() {
+  const tableShell = document.getElementById("hourlyTableShell");
+  const scrollHint = document.getElementById("mobileScrollHint");
+  const scrollThumb = document.getElementById("mobileScrollThumb");
+
+  if (!tableShell || !scrollHint || !scrollThumb) {
+    return;
+  }
+
+  function updateScrollHint() {
+    const maxScroll = tableShell.scrollWidth - tableShell.clientWidth;
+
+    if (maxScroll <= 8 || window.innerWidth > 600) {
+      scrollHint.classList.add("hidden");
+      scrollThumb.style.transform = "translateX(0)";
+      return;
+    }
+
+    scrollHint.classList.remove("hidden");
+    const progress = Math.min(
+      Math.max(tableShell.scrollLeft / maxScroll, 0),
+      1,
+    );
+    const travelPercent = progress * 78;
+    scrollThumb.style.transform = `translateX(${travelPercent}%)`;
+  }
+
+  tableShell.addEventListener("scroll", updateScrollHint, { passive: true });
+  window.addEventListener("resize", updateScrollHint);
+  updateScrollHint();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   initTooltips();
   initMinutelyToggleRows();
   initPageState();
+  initMobileScrollHint();
 });

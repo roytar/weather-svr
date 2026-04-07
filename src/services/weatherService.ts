@@ -3,7 +3,11 @@ import { WeatherApiResponse } from "@openmeteo/sdk/weather-api-response.js";
 import { FastifyBaseLogger } from "fastify";
 import nodeGeocoder from "node-geocoder";
 import { find as tzFind } from "geo-tz/now";
-import { parseLatLonInput, wmoToOpenWeatherIcon } from "../utils/index.js";
+import {
+  parseBoundingBoxInput,
+  parseLatLonInput,
+  wmoToOpenWeatherIcon,
+} from "../utils/index.js";
 import {
   WeatherData,
   GeocodeResult,
@@ -25,6 +29,11 @@ type WeatherRangeOptions = {
   temperatureUnit?: TemperatureUnit;
   unitSystem?: UnitSystem;
   includeMinutely15?: boolean;
+  boundingBox?: {
+    lowerLeft: { latitude: number; longitude: number };
+    upperRight: { latitude: number; longitude: number };
+    center: { latitude: number; longitude: number };
+  };
 };
 
 /**
@@ -58,10 +67,10 @@ export class WeatherService {
   constructor(private readonly log?: FastifyBaseLogger) {}
 
   /**
-   * Converts a free-form address, ZIP code, or `lat, lon` input into coordinates and location metadata.
+   * Converts a free-form address, ZIP code, `lat, lon`, or bounding-box input into coordinates and location metadata.
    * If only a zip code is provided, automatically looks up a street address within that zip code.
    *
-   * @param address Human-readable address, place name, ZIP code, or coordinates.
+   * @param address Human-readable address, place name, ZIP code, coordinates, or bounding-box JSON.
    * @returns Normalized geocoding result with coordinates and formatted fields.
    */
   async geocodeAddress(address: string): Promise<GeocodeResult> {
@@ -69,13 +78,36 @@ export class WeatherService {
 
     try {
       const wasZipCodeOnly = isZipCodeOnly(address);
-      const parsedLatLon = parseLatLonInput(address);
+      const parsedBoundingBox = parseBoundingBoxInput(address);
+      const parsedLatLon =
+        parsedBoundingBox?.center ?? parseLatLonInput(address);
       const inputHasStreetAddress =
-        !parsedLatLon && hasStreetAddressInput(address);
+        !parsedLatLon && !parsedBoundingBox && hasStreetAddressInput(address);
 
       let location;
 
-      if (parsedLatLon) {
+      if (parsedBoundingBox) {
+        this.log?.info(
+          {
+            address,
+            lowerLeft: parsedBoundingBox.lowerLeft,
+            upperRight: parsedBoundingBox.upperRight,
+            center: parsedBoundingBox.center,
+          },
+          "reverse geocoding bounding box center",
+        );
+
+        const reverseResults = await geocoder.reverse({
+          lat: parsedBoundingBox.center.latitude,
+          lon: parsedBoundingBox.center.longitude,
+        });
+
+        location = reverseResults[0] ?? {
+          latitude: parsedBoundingBox.center.latitude,
+          longitude: parsedBoundingBox.center.longitude,
+          formattedAddress: "Selected bounding box",
+        };
+      } else if (parsedLatLon) {
         this.log?.info(
           { address, ...parsedLatLon },
           "reverse geocoding coordinates",
@@ -126,6 +158,7 @@ export class WeatherService {
         zipcode: location.zipcode,
         wasZipCodeOnly,
         inputHasStreetAddress,
+        boundingBox: parsedBoundingBox ?? undefined,
       };
 
       this.log?.info(
@@ -203,9 +236,24 @@ export class WeatherService {
           )
         : null;
 
+    const latitudeValues = options.boundingBox
+      ? [
+          latitude,
+          options.boundingBox.lowerLeft.latitude,
+          options.boundingBox.upperRight.latitude,
+        ]
+      : [latitude];
+    const longitudeValues = options.boundingBox
+      ? [
+          longitude,
+          options.boundingBox.lowerLeft.longitude,
+          options.boundingBox.upperRight.longitude,
+        ]
+      : [longitude];
+
     const params = {
-      latitude: [latitude],
-      longitude: [longitude],
+      latitude: latitudeValues,
+      longitude: longitudeValues,
       wind_speed_unit: windSpeedUnit,
       temperature_unit: temperatureUnit,
       precipitation_unit: precipitationUnit,
@@ -305,6 +353,8 @@ export class WeatherService {
       {
         latitude,
         longitude,
+        boundingBox: options.boundingBox,
+        requestedCoordinateCount: responses.length,
         timezone,
         includeMinutely15: Boolean(options.includeMinutely15),
       },
@@ -513,7 +563,10 @@ export class WeatherService {
     const weatherData = await this.getWeatherData(
       location.latitude,
       location.longitude,
-      options,
+      {
+        ...options,
+        boundingBox: location.boundingBox,
+      },
     );
 
     // Get timezone from the weather response

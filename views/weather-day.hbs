@@ -170,6 +170,10 @@
         color: var(--ink);
       }
 
+      .scroll-hint {
+        display: none;
+      }
+
       .table-shell {
         width: 100%;
         overflow-x: auto;
@@ -241,6 +245,43 @@
 
         .temp-main {
           font-size: 2.8rem;
+        }
+
+        .scroll-hint {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin: 0.85rem 1rem 0;
+          padding: 0.65rem 0.8rem;
+          border: 1px solid #dbe4ee;
+          border-radius: 999px;
+          background: #f8fbff;
+          color: var(--subtle);
+          font-size: 0.8rem;
+        }
+
+        .scroll-hint.hidden {
+          display: none;
+        }
+
+        .scroll-track {
+          position: relative;
+          flex: 1;
+          height: 6px;
+          border-radius: 999px;
+          background: #dbe4ee;
+          overflow: hidden;
+        }
+
+        .scroll-thumb {
+          position: absolute;
+          inset: 0 auto 0 0;
+          width: 22%;
+          border-radius: inherit;
+          background: linear-gradient(135deg, #0f766e, #14b8a6);
+          transform: translateX(0);
+          transition: transform 0.12s ease;
         }
 
         .table-shell > table {
@@ -451,6 +492,18 @@
   </head>
   <body>
     <main class="wrap">
+      <div
+        id="mapWeatherSummary"
+        hidden
+        data-summary="{{summary}}"
+        data-icon-url="{{meteoconUrl}}"
+        data-temp="{{mapOverlayTemp}}"
+        data-rain="{{mapOverlayRain}}"
+        data-wind="{{mapOverlayWind}}"
+        data-temperature-unit="{{temperatureUnitLabel}}"
+        data-precipitation-unit="{{precipitationUnitLabel}}"
+        data-wind-unit="{{windSpeedUnitLabel}}"
+      ></div>
       <section class="card">
         <header class="header">
           <div class="header-top">
@@ -519,7 +572,11 @@
           </div>
         </header>
 
-        <div class="table-shell">
+        <div id="mobileScrollHint" class="scroll-hint" aria-hidden="true">
+          <span>← Swipe to see more columns →</span>
+          <span class="scroll-track"><span id="mobileScrollThumb" class="scroll-thumb"></span></span>
+        </div>
+        <div id="hourlyTableShell" class="table-shell">
         <table>
           <thead>
             <tr>

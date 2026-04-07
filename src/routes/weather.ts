@@ -482,6 +482,23 @@ export function weatherRoutes(log: FastifyBaseLogger) {
               return sameDay && (selectedDayKey !== todayKey || remainingHours);
             });
 
+          const firstHourlyRow = hourlyRows[0];
+          const mapOverlayTemp = isViewingForecast
+            ? (firstHourlyRow?.temperature ??
+              Math.round(
+                result.weather.daily.temperature_2m_max[selectedDayIndex],
+              ))
+            : Math.round(result.weather.current.temperature_2m);
+          const mapOverlayRain = isViewingForecast
+            ? (firstHourlyRow?.precipitation ?? 0)
+            : Number(result.weather.current.precipitation.toFixed(2));
+          const mapOverlayWind = isViewingForecast
+            ? (firstHourlyRow?.windSpeed ??
+              Math.round(
+                result.weather.daily.wind_speed_10m_max[selectedDayIndex],
+              ))
+            : Math.round(result.weather.current.wind_speed_10m);
+
           return reply.view("weather-day.hbs", {
             dayDate: selectedDayDate.toLocaleDateString("en-US", {
               timeZone: timezone,
@@ -504,6 +521,9 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             windSpeedUnitLabel,
             precipitationUnitLabel,
             visibilityUnitLabel,
+            mapOverlayTemp,
+            mapOverlayRain,
+            mapOverlayWind,
             // current conditions (today only)
             currentTime: isViewingForecast
               ? null
@@ -1083,6 +1103,11 @@ export function weatherRoutes(log: FastifyBaseLogger) {
         }
       },
     );
+
+    // GET /weather/map - Interactive map selector using Leaflet + OpenStreetMap
+    fastify.get("/weather/map", async (_request, reply) => {
+      return reply.view("weather-map.hbs");
+    });
 
     // GET / - Default to the weather range landing page
     fastify.get("/", async (_request, reply) => {

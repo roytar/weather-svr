@@ -138,6 +138,70 @@ export function parseLatLonInput(value) {
     }
     return { latitude, longitude };
 }
+function parseCoordinateObject(value) {
+    if (!value || typeof value !== "object") {
+        return null;
+    }
+    const latValue = "latitude" in value
+        ? value.latitude
+        : "lat" in value
+            ? value.lat
+            : undefined;
+    const lonValue = "longitude" in value
+        ? value.longitude
+        : "lon" in value
+            ? value.lon
+            : undefined;
+    const latitude = Number.parseFloat(String(latValue));
+    const longitude = Number.parseFloat(String(lonValue));
+    if (Number.isNaN(latitude) ||
+        Number.isNaN(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180) {
+        return null;
+    }
+    return { latitude, longitude };
+}
+/**
+ * Parses a bounding-box JSON string with `lowerLeft` and `upperRight` coordinates.
+ *
+ * Example:
+ * `{"lowerLeft":{"lat":40.4,"lon":-74.6},"upperRight":{"lat":40.8,"lon":-73.9}}`
+ *
+ * @param value Raw user-entered bounding-box JSON.
+ * @returns Parsed lower-left, upper-right, and center coordinates when valid.
+ */
+export function parseBoundingBoxInput(value) {
+    const normalized = value.trim();
+    if (!normalized) {
+        return null;
+    }
+    try {
+        const parsed = JSON.parse(normalized);
+        const lowerLeft = parseCoordinateObject(parsed.lowerLeft);
+        const upperRight = parseCoordinateObject(parsed.upperRight);
+        if (!lowerLeft || !upperRight) {
+            return null;
+        }
+        if (lowerLeft.latitude >= upperRight.latitude ||
+            lowerLeft.longitude >= upperRight.longitude) {
+            return null;
+        }
+        return {
+            lowerLeft,
+            upperRight,
+            center: {
+                latitude: Number(((lowerLeft.latitude + upperRight.latitude) / 2).toFixed(6)),
+                longitude: Number(((lowerLeft.longitude + upperRight.longitude) / 2).toFixed(6)),
+            },
+        };
+    }
+    catch {
+        return null;
+    }
+}
 /**
  * Validates the supported address input formats for weather lookups.
  *
@@ -152,6 +216,8 @@ export function isAllowedAddressFormat(value) {
     if (zipOnlyPattern.test(normalized))
         return true;
     if (parseLatLonInput(normalized))
+        return true;
+    if (parseBoundingBoxInput(normalized))
         return true;
     const cityStatePattern = /^[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?,\s*(?:[A-Za-z]{2}|[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?)$/;
     if (cityStatePattern.test(normalized))
@@ -207,10 +273,15 @@ export function formatLocationDisplay(input) {
     const streetFromParts = [input.streetNumber?.trim(), input.streetName?.trim()]
         .filter(Boolean)
         .join(" ");
-    const shouldShowStreetLine = input.inputHasStreetAddress ?? Boolean(streetFromParts || addressParts[0]);
-    const streetLine = shouldShowStreetLine
-        ? streetFromParts || addressParts[0]
-        : undefined;
+    const defaultStreetLineVisibility = input.inputHasStreetAddress ?? Boolean(streetFromParts || addressParts[0]);
+    const shouldShowStreetLine = input.boundingBox
+        ? false
+        : defaultStreetLineVisibility;
+    const streetLine = input.boundingBox
+        ? "Selected bounding box"
+        : shouldShowStreetLine
+            ? streetFromParts || addressParts[0]
+            : undefined;
     const city = input.city?.trim();
     const state = input.state?.trim();
     const zip = input.zipcode?.trim();
@@ -226,15 +297,21 @@ export function formatLocationDisplay(input) {
                         ? state
                         : zip
                             ? zip
-                            : addressParts[1] || "";
+                            : addressParts[1] ||
+                                (input.boundingBox ? "Selected map area" : "");
     const countryFromAddress = addressParts[addressParts.length - 1];
-    const country = input.country?.trim() || countryFromAddress;
+    const country = input.boundingBox
+        ? input.country?.trim()
+        : input.country?.trim() || countryFromAddress;
     const countryLine = country && !isUsCountry(country) ? country : undefined;
+    const coordinatesLine = input.boundingBox
+        ? `LL ${input.boundingBox.lowerLeft.latitude} ${input.boundingBox.lowerLeft.longitude} · UR ${input.boundingBox.upperRight.latitude} ${input.boundingBox.upperRight.longitude}`
+        : `${input.latitude} ${input.longitude}`;
     return {
         streetLine,
         localityLine,
         countryLine,
-        coordinatesLine: `${input.latitude} ${input.longitude}`,
+        coordinatesLine,
     };
 }
 /**

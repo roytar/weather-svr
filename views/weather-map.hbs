@@ -1,0 +1,411 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Map Selector</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(
+          circle at top,
+          #eff6ff 0%,
+          #f8fbff 45%,
+          #f4f7fb 100%
+        );
+        color: #1f2937;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: transparent;
+      }
+
+      .shell {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 16px 40px;
+      }
+
+      .page-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .hero,
+      .result-card {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 20px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      }
+
+      .hero {
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: clamp(2rem, 3vw, 2.5rem);
+      }
+
+      .subtitle {
+        margin: 0 0 18px;
+        color: #475569;
+        line-height: 1.6;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        margin: 0 0 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .status.error {
+        background: #fef2f2;
+        color: #b91c1c;
+      }
+
+      .mode-panel {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 16px;
+        margin: 0 0 16px;
+        padding: 14px 16px;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 16px;
+        background: #f8fbff;
+      }
+
+      .mode-group {
+        border: 0;
+        margin: 0;
+        padding: 0;
+      }
+
+      .mode-group legend {
+        margin-bottom: 8px;
+        font-weight: 700;
+        color: #334155;
+      }
+
+      .mode-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .mode-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: #fff;
+        color: #0f172a;
+        font-weight: 600;
+      }
+
+      .days-ago-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        color: #334155;
+        font-weight: 700;
+      }
+
+      .days-ago-field select {
+        min-width: 120px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: #fff;
+        color: #0f172a;
+      }
+
+      .days-ago-field select:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .map-frame {
+        width: 100%;
+        height: 560px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+      }
+
+      .result-card {
+        margin-top: 18px;
+        padding: 20px 24px;
+      }
+
+      .result-card h2 {
+        margin: 0 0 10px;
+      }
+
+      .result-card p {
+        margin: 0 0 14px;
+        color: #475569;
+      }
+
+      .selection-output {
+        margin: 0;
+        padding: 14px;
+        border-radius: 14px;
+        background: #0f172a;
+        color: #e2e8f0;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        min-height: 148px;
+      }
+
+      .copy-button {
+        margin-top: 14px;
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        font-weight: 700;
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+
+      .copy-button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .weather-preview-card {
+        display: none;
+      }
+
+      .weather-preview-card.visible {
+        display: block;
+      }
+
+      .weather-preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .back-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #0f172a, #334155);
+        color: #fff;
+        font-weight: 700;
+        padding: 10px 14px;
+        text-decoration: none;
+      }
+
+      .weather-frame {
+        width: 100%;
+        min-height: 720px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 16px;
+        background: #fff;
+      }
+
+      .map-weather-overlay {
+        min-width: 150px;
+        padding: 8px 10px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.42);
+        -webkit-backdrop-filter: blur(10px) saturate(1.15);
+        backdrop-filter: blur(10px) saturate(1.15);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
+        color: #0f172a;
+      }
+
+      .map-weather-overlay-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .map-weather-icon {
+        width: 34px;
+        height: 34px;
+        filter: brightness(0.58) contrast(1.35) saturate(1.05)
+          drop-shadow(0 1px 1px rgba(15, 23, 42, 0.28));
+      }
+
+      .map-weather-temp {
+        font-size: 1rem;
+        font-weight: 800;
+      }
+
+      .map-weather-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-top: 6px;
+        font-size: 0.76rem;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          padding-inline: 10px;
+        }
+
+        .hero,
+        .result-card {
+          padding: 16px;
+        }
+
+        .map-frame {
+          height: 420px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <a class="page-link" href="/">← Back to Weather Explorer</a>
+
+      <section id="weatherPreviewCard" class="result-card weather-preview-card">
+        <div class="weather-preview-header">
+          <div>
+            <h2>Weather preview frame</h2>
+            <p>
+              After you drop a pin or draw a bounding box, the day view opens
+              here.
+            </p>
+          </div>
+          <a class="back-button" href="/">← Back to landing page</a>
+        </div>
+        <iframe
+          id="weatherPreviewFrame"
+          class="weather-frame"
+          title="Weather preview"
+          loading="lazy"
+          srcdoc="<p style='font-family: sans-serif; padding: 16px;'>Drop a pin or draw a bounding box on the map to load the weather day view here.</p>"
+        ></iframe>
+      </section>
+
+      <section class="hero">
+        <h1>Map region selector</h1>
+        <p class="subtitle">
+          Allow browser location to center the map near you. If location is not
+          available, the map falls back to a USA view. Choose forecast or
+          historical mode, then drop a pin or draw one rectangle to preview the
+          day view for that selection.
+        </p>
+
+        <div class="mode-panel" aria-label="Weather mode controls">
+          <fieldset class="mode-group">
+            <legend>Map weather mode</legend>
+            <div class="mode-options">
+              <label class="mode-option">
+                <input
+                  type="radio"
+                  name="weatherMode"
+                  value="forecast"
+                  checked
+                />
+                Forecast (today)
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="weatherMode" value="historical" />
+                Historical
+              </label>
+            </div>
+          </fieldset>
+
+          <label class="days-ago-field" for="historyDaysAgo">
+            <span>Days ago</span>
+            <select id="historyDaysAgo" name="historyDaysAgo" disabled>
+              <option value="1">1 day ago</option>
+              <option value="2">2 days ago</option>
+              <option value="3">3 days ago</option>
+              <option value="4">4 days ago</option>
+              <option value="5">5 days ago</option>
+              <option value="6">6 days ago</option>
+              <option value="7" selected>7 days ago</option>
+              <option value="10">10 days ago</option>
+              <option value="14">14 days ago</option>
+              <option value="21">21 days ago</option>
+              <option value="30">30 days ago</option>
+            </select>
+          </label>
+        </div>
+
+        <p id="mapStatus" class="status" aria-live="polite">
+          Loading map and requesting browser location…
+        </p>
+
+        <div
+          id="selectionMap"
+          class="map-frame"
+          aria-label="Interactive map for selecting a rectangle"
+        ></div>
+      </section>
+
+      <section class="result-card">
+        <h2>Returned selection coordinates</h2>
+        <p>
+          After you drop a pin or draw a rectangle, the selected `lat, lon`
+          coordinates appear here.
+        </p>
+        <pre
+          id="selectionOutput"
+          class="selection-output"
+        >Drop a pin to preview weather for that point, or draw a rectangle to select the bounding box and preview that area above.</pre>
+        <button
+          id="copySelectionButton"
+          class="copy-button"
+          type="button"
+          disabled
+        >
+          Copy coordinates
+        </button>
+      </section>
+
+    </main>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"
+    ></script>
+    <script src="/assets/weather-map.js"></script>
+  </body>
+</html>
