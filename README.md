@@ -3,6 +3,7 @@
 A Fastify + TypeScript weather app that lets you look up forecast data by **full address**, **city/state**, **ZIP code**, or **latitude/longitude**.
 
 It provides:
+
 - a **single-day detailed view** with hourly breakdowns
 - a **date-range explorer** with one row per day
 - a **plain-text weather endpoint**
@@ -27,12 +28,14 @@ It provides:
 The main user input is the `address` field.
 
 Supported formats:
+
 - `08873`
 - `Seattle, WA`
 - `24 Ave, Somerset, NJ 08873`
 - `40.7128, -74.0060`
 
 Additional inputs:
+
 - `date` — single-day weather page
 - `startDate` and `endDate` — range page
 - `temperatureUnit` — `fahrenheit` or `celsius`
@@ -43,16 +46,19 @@ Additional inputs:
 ## Outputs
 
 ### HTML pages
+
 - `/` → default landing page for the range explorer
 - `/weather/day` → detailed day view with hourly rows
 - `/weather/range` → multi-day range view with expandable daily details
 
 ### API-style responses
+
 - `/weather/text` → plain-text weather summary
 - `/weather/minutely` → JSON for lazy 15-minute weather details
 - `/health` → health-check endpoint
 
 ### Example requests
+
 ```txt
 /weather/day?address=Seattle,%20WA&date=2026-04-07
 /weather/range?address=40.7128,%20-74.0060&startDate=2026-04-07&endDate=2026-04-10
@@ -100,59 +106,66 @@ tests/
 
 ## Major npm packages used
 
-| Package | Purpose |
-|---|---|
-| `fastify` | Main web server framework |
-| `@fastify/view` | Server-side template rendering |
-| `handlebars` | HTML templating engine |
-| `@fastify/static` | Serves JS, icons, and other static assets |
-| `openmeteo` | Weather forecast API client |
-| `node-geocoder` | Forward and reverse geocoding |
-| `geo-tz` | Timezone lookup from coordinates |
-| `@fastify/cors` | CORS support |
-| `@fastify/helmet` | Secure HTTP headers |
-| `@fastify/rate-limit` | Request throttling |
-| `short-uuid` | Request ID generation |
-| `typescript` | Type-safe development |
-| `tsx` | Runs TypeScript directly in development |
-| `jest` + `ts-jest` | Test runner for TypeScript |
-| `eslint` | Linting and code quality checks |
+| Package               | Purpose                                   |
+| --------------------- | ----------------------------------------- |
+| `fastify`             | Main web server framework                 |
+| `@fastify/view`       | Server-side template rendering            |
+| `handlebars`          | HTML templating engine                    |
+| `@fastify/static`     | Serves JS, icons, and other static assets |
+| `openmeteo`           | Weather forecast API client               |
+| `node-geocoder`       | Forward and reverse geocoding             |
+| `geo-tz`              | Timezone lookup from coordinates          |
+| `@fastify/cors`       | CORS support                              |
+| `@fastify/helmet`     | Secure HTTP headers                       |
+| `@fastify/rate-limit` | Request throttling                        |
+| `short-uuid`          | Request ID generation                     |
+| `typescript`          | Type-safe development                     |
+| `tsx`                 | Runs TypeScript directly in development   |
+| `jest` + `ts-jest`    | Test runner for TypeScript                |
+| `eslint`              | Linting and code quality checks           |
 
 ---
 
 ## Running the app
 
 ### Install dependencies
+
 ```bash
 npm install
 ```
 
 ### Start in development mode
+
 ```bash
 npm run dev
 ```
 
 ### Build
+
 ```bash
 npm run build
 ```
 
 ### Start the built app
+
 ```bash
 npm start
 ```
 
 ### Test
+
 ```bash
 npm test
 ```
 
 ### Lint
+
 ```bash
 npm run lint
 ```
 
 By default, the app starts on:
+
 ```txt
 http://localhost:3000/
 ```
