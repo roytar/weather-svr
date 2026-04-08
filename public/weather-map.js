@@ -37,7 +37,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   if (L.drawLocal?.draw?.handlers?.marker?.tooltip) {
-    L.drawLocal.draw.handlers.marker.tooltip.start = "Click to select address";
+    L.drawLocal.draw.handlers.marker.tooltip.start = "Drop a pin";
   }
 
   const map = L.map(mapElement).setView(usaCenter, usaZoom);
@@ -110,7 +110,7 @@ window.addEventListener("DOMContentLoaded", () => {
     selectionOutlineLayer.clearLayers();
 
     layer.setIcon(selectionPinIcon);
-    layer.bindTooltip("Click to select address", {
+    layer.bindTooltip("Drop a pin", {
       direction: "top",
       offset: [0, -10],
     });
@@ -182,11 +182,7 @@ window.addEventListener("DOMContentLoaded", () => {
     map.invalidateSize();
   }, 0);
 
-  setStatus(
-    returnTo === "range-landing"
-      ? "Drop a pin or draw a rectangle to choose a location. You’ll return to the landing page automatically."
-      : "Drop a pin or draw a rectangle to choose a location.",
-  );
+  setStatus("Drop a pin");
 
   if (!navigator.geolocation) {
     setStatus("Browser location unavailable. Showing a USA map instead.", true);

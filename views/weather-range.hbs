@@ -213,8 +213,7 @@
       }
 
       thead th:first-child,
-      thead th:nth-child(2),
-      thead th:nth-child(3) {
+      thead th:nth-child(2) {
         text-align: left;
       }
 
@@ -225,7 +224,7 @@
         white-space: nowrap;
       }
 
-      td:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) {
+      td:not(:first-child):not(:nth-child(2)) {
         text-align: right;
         font-variant-numeric: tabular-nums;
       }
@@ -255,6 +254,54 @@
         width: 38px;
         height: 38px;
         display: block;
+      }
+
+      .icon-wrap {
+        position: relative;
+        display: inline-block;
+        line-height: 0;
+      }
+
+      [data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1f2937;
+        color: #f9fafb;
+        font-size: 0.75rem;
+        font-weight: 400;
+        line-height: 1.4;
+        padding: 0.3rem 0.55rem;
+        border-radius: 5px;
+        white-space: normal;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        z-index: 100;
+        min-width: 120px;
+        max-width: 240px;
+        text-align: center;
+      }
+
+      [data-tooltip]::before {
+        content: "";
+        position: absolute;
+        bottom: calc(100% + 2px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-top-color: #1f2937;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        z-index: 100;
+      }
+
+      [data-tooltip]:hover::after,
+      [data-tooltip]:hover::before {
+        opacity: 1;
       }
 
       .expandable-row {
@@ -508,7 +555,7 @@
             </div>
           </div>
           <div class="header-body">
-            <span title="{{summary}} (code: {{iconCode}})">
+            <span class="icon-wrap" data-tooltip="{{summary}} (code: {{iconCode}})" title="{{summary}} (code: {{iconCode}})">
               <img
                 class="weather-icon"
                 src="{{meteoconUrl}}"
@@ -563,8 +610,7 @@
             <thead>
               <tr>
                 <th>Day</th>
-                <th>Icon</th>
-                <th>Condition</th>
+                <th title="Weather icon and summary">Icon</th>
                 <th>High ({{temperatureUnitLabel}})</th>
                 <th>Low ({{temperatureUnitLabel}})</th>
                 <th>Feels Like Max ({{temperatureUnitLabel}})</th>
@@ -586,15 +632,16 @@
                     </span>
                   </td>
                   <td>
-                    <img
-                      class="day-icon"
-                      src="{{this.meteoconUrl}}"
-                      alt="{{this.summary}}"
-                      width="38"
-                      height="38"
-                    />
+                    <span class="icon-wrap" data-tooltip="{{this.summary}} (code: {{this.iconCode}})" title="{{this.summary}} (code: {{this.iconCode}})">
+                      <img
+                        class="day-icon"
+                        src="{{this.meteoconUrl}}"
+                        alt="{{this.summary}}"
+                        width="38"
+                        height="38"
+                      />
+                    </span>
                   </td>
-                  <td>{{this.summary}}</td>
                   <td>{{this.highTemp}}°</td>
                   <td>{{this.lowTemp}}°</td>
                   <td>{{this.apparentTempMax}}°</td>
@@ -605,7 +652,7 @@
                   <td>{{this.sunsetTime}}</td>
                 </tr>
                 <tr class="day-detail-row" id="day-detail-{{@index}}" style="display:none">
-                  <td colspan="11">
+                  <td colspan="10">
                     <section class="detail-card">
                       <div class="detail-card-header">
                         <div>
@@ -618,13 +665,15 @@
                       </div>
 
                       <div class="detail-summary">
-                        <img
-                          class="day-icon"
-                          src="{{this.meteoconUrl}}"
-                          alt="{{this.summary}}"
-                          width="68"
-                          height="68"
-                        />
+                        <span class="icon-wrap" data-tooltip="{{this.summary}} (code: {{this.iconCode}})" title="{{this.summary}} (code: {{this.iconCode}})">
+                          <img
+                            class="day-icon"
+                            src="{{this.meteoconUrl}}"
+                            alt="{{this.summary}}"
+                            width="68"
+                            height="68"
+                          />
+                        </span>
                         <div>
                           <div class="hi-lo">
                             <span>H:&nbsp;<strong>{{this.highTemp}}°</strong></span>&nbsp;&nbsp;
@@ -679,13 +728,15 @@
                                   {{/if}}
                                 </td>
                                 <td>
-                                  <img
-                                    class="day-icon"
-                                    src="{{this.meteoconUrl}}"
-                                    alt="{{this.iconSummary}}"
-                                    width="38"
-                                    height="38"
-                                  />
+                                  <span class="icon-wrap" data-tooltip="{{this.iconSummary}} (code: {{this.iconCode}})" title="{{this.iconSummary}} (code: {{this.iconCode}})">
+                                    <img
+                                      class="day-icon"
+                                      src="{{this.meteoconUrl}}"
+                                      alt="{{this.iconSummary}}"
+                                      width="38"
+                                      height="38"
+                                    />
+                                  </span>
                                 </td>
                                 <td>{{this.hour}}</td>
                                 <td>{{this.temperature}}</td>

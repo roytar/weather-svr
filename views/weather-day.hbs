@@ -535,7 +535,7 @@
             </div>
           </div>
           <div class="header-body">
-            <span class="icon-wrap" title="{{summary}} (code: {{iconCode}})">
+            <span class="icon-wrap" data-tooltip="{{summary}} (code: {{iconCode}})" title="{{summary}} (code: {{iconCode}})">
               <img
                 class="weather-icon"
                 src="{{meteoconUrl}}"
@@ -608,7 +608,7 @@
                   {{/if}}
                 </td>
                 <td>
-                  <span class="icon-wrap" title="{{this.iconSummary}} (code: {{this.iconCode}})">
+                  <span class="icon-wrap" data-tooltip="{{this.iconSummary}} (code: {{this.iconCode}})" title="{{this.iconSummary}} (code: {{this.iconCode}})">
                     <img
                       class="hour-icon"
                       src="{{this.meteoconUrl}}"

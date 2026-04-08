@@ -5,6 +5,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const addressInput = document.getElementById("address");
   const startDateInput = document.getElementById("startDate");
   const endDateInput = document.getElementById("endDate");
+  const clearAddressButton = document.getElementById("clearAddressButton");
   const toast = document.getElementById("addressErrorToast");
   const toastText = document.getElementById("addressErrorToastText");
   const toastClose = document.getElementById("addressErrorToastClose");
@@ -76,6 +77,14 @@ window.addEventListener("DOMContentLoaded", () => {
     /^[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?,\s*(?:[A-Za-z]{2}|[A-Za-z]+(?:[A-Za-z .'-]*[A-Za-z])?)$/;
   const fullAddressPattern = /^\d+[A-Za-z0-9\-/]*\s+.+$/;
   let hideToastTimer = 0;
+
+  function syncClearAddressButton() {
+    if (!clearAddressButton) {
+      return;
+    }
+
+    clearAddressButton.hidden = !addressInput.value.trim();
+  }
 
   function shakeField(field) {
     if (!field) {
@@ -185,6 +194,22 @@ window.addEventListener("DOMContentLoaded", () => {
 
   toastClose.addEventListener("click", hideToast);
 
+  clearAddressButton?.addEventListener("click", () => {
+    addressInput.value = "";
+    hideToast();
+    clearFieldShake(addressInput);
+
+    try {
+      window.sessionStorage.removeItem(lastAddressStorageKey);
+      window.sessionStorage.removeItem(mapAddressStorageKey);
+    } catch {
+      // Ignore storage errors.
+    }
+
+    syncClearAddressButton();
+    addressInput.focus();
+  });
+
   addressInput.addEventListener("animationend", () => {
     clearFieldShake(addressInput);
   });
@@ -253,6 +278,7 @@ window.addEventListener("DOMContentLoaded", () => {
   addressInput.addEventListener("input", () => {
     hideToast();
     clearFieldShake(addressInput);
+    syncClearAddressButton();
   });
 
   startDateInput?.addEventListener("input", () => {
@@ -276,4 +302,5 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   syncDateConstraints();
+  syncClearAddressButton();
 });

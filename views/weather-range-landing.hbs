@@ -132,6 +132,51 @@
         font-size: 0.95rem;
       }
 
+      .address-input-wrap {
+        position: relative;
+      }
+
+      .address-input-wrap input {
+        padding-right: 2.5rem;
+      }
+
+      .clear-address-button {
+        position: absolute;
+        top: 50%;
+        right: 0.5rem;
+        transform: translateY(-50%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.65rem;
+        height: 1.65rem;
+        border: 0;
+        border-radius: 999px;
+        background: #e5eef7;
+        color: #475569;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+        transition:
+          background 140ms ease,
+          color 140ms ease,
+          transform 140ms ease;
+      }
+
+      .clear-address-button:hover {
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+
+      .clear-address-button:focus-visible {
+        outline: 3px solid rgba(37, 99, 235, 0.2);
+        outline-offset: 2px;
+      }
+
+      .clear-address-button[hidden] {
+        display: none;
+      }
+
       .field input:focus {
         outline: none;
         border-color: var(--accent);
@@ -175,22 +220,27 @@
         margin: 0;
         border: 1px solid var(--line);
         border-radius: 0.75rem;
-        padding: 0.9rem 1rem;
+        padding: 0.65rem 0.85rem 0.75rem;
+      }
+
+      .legend {
+        margin-bottom: 0.1rem;
       }
 
       .choices {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem 1rem;
-        margin-top: 0.5rem;
+        gap: 0.45rem 0.9rem;
+        margin-top: 0.3rem;
       }
 
       .choices label {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.35rem;
         color: var(--subtle);
-        font-size: 0.92rem;
+        font-size: 0.89rem;
+        line-height: 1.25;
       }
 
       .actions {
@@ -415,15 +465,27 @@
                   📍 Use map
                 </a>
               </label>
-              <input
-                id="address"
-                name="address"
-                type="text"
-                placeholder="08873, Seattle, WA, or 40.7128, -74.0060"
-                title="Enter a street address, city/state, ZIP code, or latitude/longitude"
-                value="{{address}}"
-                required
-              />
+              <div class="address-input-wrap">
+                <input
+                  id="address"
+                  name="address"
+                  type="text"
+                  placeholder="08873, Seattle, WA, or 40.7128, -74.0060"
+                  title="Enter a street address, city/state, ZIP code, or latitude/longitude"
+                  value="{{address}}"
+                  required
+                />
+                <button
+                  id="clearAddressButton"
+                  class="clear-address-button"
+                  type="button"
+                  aria-label="Clear address"
+                  title="Clear address"
+                  {{#unless address}}hidden{{/unless}}
+                >
+                  ×
+                </button>
+              </div>
             </div>
             <div class="field">
               <label for="startDate">Start date</label>
