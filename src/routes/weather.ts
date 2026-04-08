@@ -457,6 +457,13 @@ export function weatherRoutes(log: FastifyBaseLogger) {
               const hasMinutely15 =
                 selectedDayKey >= todayKey && row.hourKey >= nowHourKey;
 
+              // Check if there are at least 15 minutes left in this hour
+              const endOfHour = new Date(row.hourDate);
+              endOfHour.setUTCMinutes(59, 59, 999);
+              const minutesRemainingInHour =
+                (endOfHour.getTime() - now.getTime()) / (1000 * 60);
+              const enoughTimeRemainingInHour = minutesRemainingInHour >= 15;
+
               return {
                 ...row,
                 iconCode: hourIcon.iconCode,
@@ -464,15 +471,17 @@ export function weatherRoutes(log: FastifyBaseLogger) {
                 meteoconUrl: hourIcon.meteoconUrl,
                 iconSummary: hourIcon.summary,
                 hasMinutely15,
-                minutelyUrl: hasMinutely15
-                  ? `/weather/minutely?${new URLSearchParams({
-                      address: normalizedAddress,
-                      date: selectedDayKey,
-                      hourKey: row.hourKey,
-                      temperatureUnit,
-                      unitSystem,
-                    }).toString()}`
-                  : undefined,
+                enoughTimeRemainingInHour,
+                minutelyUrl:
+                  hasMinutely15 && enoughTimeRemainingInHour
+                    ? `/weather/minutely?${new URLSearchParams({
+                        address: normalizedAddress,
+                        date: selectedDayKey,
+                        hourKey: row.hourKey,
+                        temperatureUnit,
+                        unitSystem,
+                      }).toString()}`
+                    : undefined,
               };
             })
             .filter((row) => {
@@ -890,19 +899,28 @@ export function weatherRoutes(log: FastifyBaseLogger) {
                 const hasMinutely15 =
                   rowKey >= todayKey && row.hourKey >= nowHourKey;
 
+                // Check if there are at least 15 minutes left in this hour
+                const endOfHour = new Date(row.hourDate);
+                endOfHour.setUTCMinutes(59, 59, 999);
+                const minutesRemaining =
+                  (endOfHour.getTime() - now.getTime()) / (1000 * 60);
+                const enoughTimeRemainingInHour = minutesRemaining >= 15;
+
                 return {
                   ...row,
                   hasMinutely15,
+                  enoughTimeRemainingInHour,
                   detailToggleId: `range-${index}-${hourIndex}`,
-                  minutelyUrl: hasMinutely15
-                    ? `/weather/minutely?${new URLSearchParams({
-                        address: normalizedAddress,
-                        date: rowKey,
-                        hourKey: row.hourKey,
-                        temperatureUnit,
-                        unitSystem,
-                      }).toString()}`
-                    : undefined,
+                  minutelyUrl:
+                    hasMinutely15 && enoughTimeRemainingInHour
+                      ? `/weather/minutely?${new URLSearchParams({
+                          address: normalizedAddress,
+                          date: rowKey,
+                          hourKey: row.hourKey,
+                          temperatureUnit,
+                          unitSystem,
+                        }).toString()}`
+                      : undefined,
                 };
               });
 
@@ -992,6 +1010,14 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             };
           });
 
+          const goBackUrl = `/?${new URLSearchParams({
+            address: normalizedAddress,
+            startDate: normalizedStartDate,
+            endDate: normalizedEndDate,
+            temperatureUnit,
+            unitSystem,
+          }).toString()}`;
+
           return reply.view("weather-range.hbs", {
             dayDate: now.toLocaleDateString("en-US", {
               timeZone: timezone,
@@ -1071,6 +1097,7 @@ export function weatherRoutes(log: FastifyBaseLogger) {
             precipitationUnitLabel,
             visibilityUnitLabel,
             dailyRows,
+            goBackUrl,
           });
         } catch (error) {
           const errorMessage =
@@ -1104,28 +1131,79 @@ export function weatherRoutes(log: FastifyBaseLogger) {
       },
     );
 
+    // GET /weather/geocode - Reverse geocode coordinates to readable address
+    fastify.get(
+      "/weather/geocode",
+      {
+        schema: {
+          querystring: {
+            type: "object",
+            properties: {
+              address: { type: "string" },
+            },
+            required: ["address"],
+          },
+        },
+      },
+      async (request, reply) => {
+        const { address } = request.query as { address: string };
+
+        try {
+          const geocoded = await weatherService.geocodeAddress(address);
+          return reply.code(200).send({
+            formattedAddress: geocoded.formattedAddress,
+            latitude: geocoded.latitude,
+            longitude: geocoded.longitude,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          return reply.code(400).send({
+            error: errorMessage,
+          });
+        }
+      },
+    );
+
     // GET /weather/map - Interactive map selector using Leaflet + OpenStreetMap
     fastify.get("/weather/map", async (_request, reply) => {
       return reply.view("weather-map.hbs");
     });
 
     // GET / - Default to the weather range landing page
-    fastify.get("/", async (_request, reply) => {
+    fastify.get("/", async (request, reply) => {
+      const {
+        address,
+        startDate,
+        endDate,
+        temperatureUnit: rawTemperatureUnit,
+        unitSystem: rawUnitSystem,
+      } = request.query as {
+        address?: string;
+        startDate?: string;
+        endDate?: string;
+        temperatureUnit?: string;
+        unitSystem?: string;
+      };
+
+      const temperatureUnit =
+        rawTemperatureUnit === "celsius" ? "celsius" : "fahrenheit";
+      const unitSystem = rawUnitSystem === "metric" ? "metric" : "english";
+
       const today = new Date();
       today.setUTCHours(0, 0, 0, 0);
       const maxDate = new Date(today);
       maxDate.setUTCDate(maxDate.getUTCDate() + MAX_FORECAST_LOOKAHEAD_DAYS);
-      const defaultEndDate = new Date(today);
-      defaultEndDate.setUTCDate(defaultEndDate.getUTCDate() + 4);
-      if (defaultEndDate > maxDate) {
-        defaultEndDate.setTime(maxDate.getTime());
-      }
+      const todayDate = today.toISOString().split("T")[0];
 
       return reply.view("weather-range-landing.hbs", {
-        todayDate: today.toISOString().split("T")[0],
-        defaultStartDate: today.toISOString().split("T")[0],
-        defaultEndDate: defaultEndDate.toISOString().split("T")[0],
+        todayDate,
+        defaultStartDate: startDate?.trim() || todayDate,
+        defaultEndDate: endDate?.trim() || todayDate,
         maxDate: maxDate.toISOString().split("T")[0],
+        address: address?.trim() || "",
+        isCelsius: temperatureUnit === "celsius",
+        isMetric: unitSystem === "metric",
       });
     });
   };

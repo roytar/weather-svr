@@ -1,5 +1,14 @@
-import app from "./app.js";
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+import process from "node:process";
+try {
+    process.loadEnvFile?.();
+}
+catch (error) {
+    if (error.code !== "ENOENT") {
+        throw error;
+    }
+}
+const { default: app } = await import("./app.js");
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 /**
  * Boots the Fastify server and logs the primary endpoints.
  */

@@ -13,6 +13,56 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const returningFromMap = searchParams.get("fromMap") === "1";
+  const mapAddressStorageKey = "weatherMapSelectedAddress";
+  const lastAddressStorageKey = "weatherLastAddress";
+  let storedMapAddress = "";
+  let storedLastAddress = "";
+
+  try {
+    storedMapAddress =
+      window.sessionStorage.getItem(mapAddressStorageKey) || "";
+    storedLastAddress =
+      window.sessionStorage.getItem(lastAddressStorageKey) || "";
+  } catch {
+    storedMapAddress = "";
+    storedLastAddress = "";
+  }
+
+  const prefilledMapAddress =
+    searchParams.get("address") ||
+    storedMapAddress ||
+    addressInput.value.trim() ||
+    storedLastAddress;
+
+  if (prefilledMapAddress) {
+    addressInput.value = prefilledMapAddress;
+
+    try {
+      window.sessionStorage.setItem(lastAddressStorageKey, prefilledMapAddress);
+      window.sessionStorage.removeItem(mapAddressStorageKey);
+    } catch {
+      // Ignore storage cleanup errors.
+    }
+
+    if (window.history?.replaceState) {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("fromMap");
+      window.history.replaceState(
+        {},
+        document.title,
+        `${cleanUrl.pathname}${cleanUrl.search}`,
+      );
+    }
+
+    window.requestAnimationFrame(() => {
+      addressInput.focus();
+      const end = addressInput.value.length;
+      addressInput.setSelectionRange(end, end);
+    });
+  }
+
   const formatErrorMessage =
     "Invalid address format. Use ZIP only (08873), city and state (Seattle, WA), latitude/longitude (40.7128, -74.0060), or a full address (24 Lake Ave, Somerset, NJ 08873).";
   const requiredErrorMessage = "Please enter an address.";
@@ -186,6 +236,12 @@ window.addEventListener("DOMContentLoaded", () => {
         endDateInput.focus();
         return;
       }
+    }
+
+    try {
+      window.sessionStorage.setItem(lastAddressStorageKey, value);
+    } catch {
+      // Ignore storage errors.
     }
 
     hideToast();

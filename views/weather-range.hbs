@@ -555,8 +555,7 @@
         </header>
 
         <div class="toolbar">
-          <a href="/weather/range">Choose another range</a>
-          <a href="/">Single day page</a>
+          <a href="{{goBackUrl}}">← Go back</a>
         </div>
 
         <div class="table-shell">
@@ -616,7 +615,6 @@
                           </div>
                           <div class="condition-label">{{this.summary}}</div>
                         </div>
-                        <a class="detail-link" href="{{this.dayUrl}}">Open full day page</a>
                       </div>
 
                       <div class="detail-summary">
@@ -671,11 +669,13 @@
                             {{#each this.hourlyRows}}
                               <tr
                                 class="{{#if this.hasMinutely15}}hourly-expandable{{/if}}"
-                                {{#if this.hasMinutely15}}data-minutely-toggle="{{this.detailToggleId}}" data-minutely-url="{{this.minutelyUrl}}"{{/if}}
+                                {{#if this.hasMinutely15}}{{#if this.enoughTimeRemainingInHour}}data-minutely-toggle="{{this.detailToggleId}}" data-minutely-url="{{this.minutelyUrl}}"{{/if}}{{/if}}
                               >
                                 <td>
                                   {{#if this.hasMinutely15}}
-                                    <span class="caret" id="caret-{{this.detailToggleId}}">&#9654;</span>
+                                    {{#if this.enoughTimeRemainingInHour}}
+                                      <span class="caret" id="caret-{{this.detailToggleId}}">&#9654;</span>
+                                    {{/if}}
                                   {{/if}}
                                 </td>
                                 <td>

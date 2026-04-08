@@ -238,6 +238,46 @@
         background: #0b5f58;
       }
 
+      .field-label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+      }
+
+      .map-link-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 118, 110, 0.24);
+        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 700;
+        line-height: 1;
+        box-shadow: 0 4px 12px rgba(15, 118, 110, 0.08);
+        transition:
+          transform 140ms ease,
+          box-shadow 140ms ease,
+          background 140ms ease;
+      }
+
+      .map-link-button:hover {
+        background: linear-gradient(135deg, #dffaf1, #bbf7d0);
+        box-shadow: 0 8px 18px rgba(15, 118, 110, 0.14);
+        transform: translateY(-1px);
+        text-decoration: none;
+      }
+
+      .map-link-button:focus-visible {
+        outline: 3px solid rgba(15, 118, 110, 0.22);
+        outline-offset: 2px;
+      }
+
       .error-toast {
         position: fixed;
         top: 1.25rem;
@@ -354,10 +394,8 @@
     <main class="shell">
       <section class="hero">
         <div class="page-links">
-          <a class="page-link" href="/weather/day">← Single day view</a>
-          <a class="page-link" href="/weather/map">🗺️ Map selector</a>
         </div>
-        <h1 class="weather-title"><span>Weather Exporer</span></h1>
+        <h1 class="weather-title"><span>Weather Explorer</span></h1>
         <p class="subtitle">
           Choose a location plus a start and end date to view one weather row
           per day across the selected date range.
@@ -371,7 +409,12 @@
         >
           <div class="field-grid">
             <div class="field">
-              <label for="address">Address, ZIP, or lat/lon</label>
+              <label for="address" class="field-label-row">
+                <span>Address, ZIP, or lat/lon</span>
+                <a class="map-link-button" href="/weather/map?returnTo=range-landing">
+                  📍 Use map
+                </a>
+              </label>
               <input
                 id="address"
                 name="address"
@@ -462,7 +505,7 @@
               Historic dates are allowed, and forecast dates can be selected up
               to about 15 days ahead.
             </div>
-            <button class="go-button" type="submit">Show date range</button>
+            <button class="go-button" type="submit">Go</button>
           </div>
         </form>
       </section>

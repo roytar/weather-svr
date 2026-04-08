@@ -65,33 +65,35 @@ app.addHook("onResponse", async (request, reply) => {
  */
 app.register(cors);
 /**
- * Registers Helmet to set secure HTTP headers for all routes.
+ * Registers Helmet to set secure HTTP headers for all routes outside development.
  * Allows the external Leaflet/OpenStreetMap assets used by `/weather/map`.
  */
-app.register(helmet, {
-    global: true,
-    referrerPolicy: {
-        policy: "strict-origin-when-cross-origin",
-    },
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            baseUri: ["'self'"],
-            scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-            imgSrc: [
-                "'self'",
-                "data:",
-                "blob:",
-                "https://tile.openstreetmap.org",
-                "https://*.tile.openstreetmap.org",
-                "https://cdn.jsdelivr.net",
-            ],
-            fontSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"],
-            connectSrc: ["'self'"],
+if (process.env.NODE_ENV !== "development") {
+    app.register(helmet, {
+        global: true,
+        referrerPolicy: {
+            policy: "strict-origin-when-cross-origin",
         },
-    },
-});
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                baseUri: ["'self'"],
+                scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+                styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+                imgSrc: [
+                    "'self'",
+                    "data:",
+                    "blob:",
+                    "https://tile.openstreetmap.org",
+                    "https://*.tile.openstreetmap.org",
+                    "https://cdn.jsdelivr.net",
+                ],
+                fontSrc: ["'self'", "data:", "https://cdn.jsdelivr.net"],
+                connectSrc: ["'self'"],
+            },
+        },
+    });
+}
 /**
  * Registers the Handlebars view engine used by the HTML pages.
  */

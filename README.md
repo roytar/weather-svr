@@ -50,10 +50,10 @@ Additional inputs:
 
 ### HTML pages
 
-- `/` → default landing page for the range explorer
+- `/` → default landing page for the range explorer with optional map-based location picker
 - `/weather/day` → detailed day view with hourly rows
 - `/weather/range` → multi-day range view with expandable daily details
-- `/weather/map` → interactive map with browser-location centering, pin drops, and bounding-box weather preview
+- `/weather/map` → interactive map with browser-location centering, pin drops, and bounding-box weather preview; supports `?returnTo=range-landing` to enable "Use this location" button for returning selected address to the landing page
 
 ### API-style responses
 

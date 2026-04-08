@@ -598,11 +598,13 @@
             {{#each hourlyRows}}
               <tr
                 class="{{#if this.hasMinutely15}}expandable{{/if}}"
-                {{#if this.hasMinutely15}}data-minutely-toggle="{{@index}}" data-minutely-url="{{this.minutelyUrl}}"{{/if}}
+                {{#if this.hasMinutely15}}{{#if this.enoughTimeRemainingInHour}}data-minutely-toggle="{{@index}}" data-minutely-url="{{this.minutelyUrl}}"{{/if}}{{/if}}
               >
                 <td>
                   {{#if this.hasMinutely15}}
-                    <span class="caret" id="caret-{{@index}}">&#9654;</span>
+                    {{#if this.enoughTimeRemainingInHour}}
+                      <span class="caret" id="caret-{{@index}}">&#9654;</span>
+                    {{/if}}
                   {{/if}}
                 </td>
                 <td>
