@@ -337,7 +337,7 @@ export class WeatherService {
     } catch (err) {
       this.log?.error(
         { latitude, longitude, options, err },
-        "weather api request failed",
+        "open-meteo weather api request failed",
       );
       const errorMessage = err instanceof Error ? err.message : String(err);
       const wrappedError = new Error(
@@ -358,7 +358,7 @@ export class WeatherService {
         timezone,
         includeMinutely15: Boolean(options.includeMinutely15),
       },
-      "weather data fetched",
+      "Open-meteoweather data fetched",
     );
     const current = response.current()!;
     const hourly = response.hourly()!;
