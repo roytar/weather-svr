@@ -85,6 +85,7 @@ export class WeatherService {
         !parsedLatLon && !parsedBoundingBox && hasStreetAddressInput(address);
 
       let location;
+      let reverseResults;
 
       if (parsedBoundingBox) {
         this.log?.info(
@@ -97,51 +98,125 @@ export class WeatherService {
           "reverse geocoding bounding box center",
         );
 
-        const reverseResults = await geocoder.reverse({
+        reverseResults = await geocoder.reverse({
           lat: parsedBoundingBox.center.latitude,
           lon: parsedBoundingBox.center.longitude,
         });
 
-        location = reverseResults[0] ?? {
-          latitude: parsedBoundingBox.center.latitude,
-          longitude: parsedBoundingBox.center.longitude,
-          formattedAddress: "Selected bounding box",
-        };
+        if (!Array.isArray(reverseResults)) {
+          throw new Error(
+            "Bounding-box reverse geocoding returned invalid response",
+          );
+        }
+
+        location = reverseResults[0];
+        if (!location?.latitude || !location?.longitude) {
+          this.log?.warn(
+            {
+              address,
+              reverseResults,
+              fallbackLatitude: parsedBoundingBox.center.latitude,
+              fallbackLongitude: parsedBoundingBox.center.longitude,
+            },
+            "bounding box reverse geocode returned no usable location; using center coordinates",
+          );
+          location = {
+            latitude: parsedBoundingBox.center.latitude,
+            longitude: parsedBoundingBox.center.longitude,
+            formattedAddress: "Selected bounding box",
+          };
+        }
       } else if (parsedLatLon) {
         this.log?.info(
           { address, ...parsedLatLon },
           "reverse geocoding coordinates",
         );
 
-        const reverseResults = await geocoder.reverse({
+        reverseResults = await geocoder.reverse({
           lat: parsedLatLon.latitude,
           lon: parsedLatLon.longitude,
         });
 
-        location = reverseResults[0] ?? {
-          latitude: parsedLatLon.latitude,
-          longitude: parsedLatLon.longitude,
-          formattedAddress: `${parsedLatLon.latitude}, ${parsedLatLon.longitude}`,
-        };
+        if (!Array.isArray(reverseResults)) {
+          throw new Error(
+            "Coordinate reverse geocoding returned invalid response",
+          );
+        }
+
+        location = reverseResults[0];
+        if (!location?.latitude || !location?.longitude) {
+          this.log?.warn(
+            {
+              address,
+              reverseResults,
+              fallbackLatitude: parsedLatLon.latitude,
+              fallbackLongitude: parsedLatLon.longitude,
+            },
+            "coordinate reverse geocode returned no usable location; using input coordinates",
+          );
+          location = {
+            latitude: parsedLatLon.latitude,
+            longitude: parsedLatLon.longitude,
+            formattedAddress: `${parsedLatLon.latitude}, ${parsedLatLon.longitude}`,
+          };
+        }
       } else {
         const locations = await geocoder.geocode(address);
 
-        if (locations.length === 0) {
+        if (!Array.isArray(locations) || locations.length === 0) {
           throw new Error(`No geocoding results for ${address}`);
         }
 
         location = locations[0];
+        if (!location?.latitude || !location?.longitude) {
+          this.log?.error(
+            { address, locations },
+            "geocode lookup returned invalid coordinates",
+          );
+          throw new Error(
+            `Geocode lookup returned invalid coordinates for ${address}`,
+          );
+        }
 
         // If input was only a zip code, reverse-geocode the result to find a street address
         if (wasZipCodeOnly && location.latitude && location.longitude) {
-          const reverseResults = await geocoder.reverse({
+          const zipReverseResults = await geocoder.reverse({
             lat: location.latitude,
             lon: location.longitude,
           });
 
-          if (reverseResults.length > 0) {
-            // Use the first street address from reverse geocoding
-            location = reverseResults[0];
+          if (!Array.isArray(zipReverseResults)) {
+            this.log?.warn(
+              {
+                address,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                zipReverseResults,
+              },
+              "zip-code reverse geocode returned invalid response",
+            );
+          } else if (zipReverseResults.length > 0) {
+            const zipLocation = zipReverseResults[0];
+            if (zipLocation?.latitude && zipLocation?.longitude) {
+              location = zipLocation;
+            } else {
+              this.log?.warn(
+                {
+                  address,
+                  zipReverseResults,
+                },
+                "zip-code reverse geocode returned no usable street address",
+              );
+            }
+          } else {
+            this.log?.warn(
+              {
+                address,
+                latitude: location.latitude,
+                longitude: location.longitude,
+              },
+              "zip-code reverse geocode returned no results",
+            );
           }
         }
       }
