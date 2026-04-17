@@ -420,6 +420,7 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 0.82rem;
+        table-layout: fixed;
       }
 
       .minutely-table th,
@@ -428,6 +429,16 @@
         border-bottom: 1px solid #e5ecf4;
         color: var(--subtle);
         white-space: nowrap;
+      }
+
+      .minutely-table th:nth-child(1),
+      .minutely-table td:nth-child(1) {
+        text-align: left;
+      }
+
+      .minutely-table th:nth-child(n+2),
+      .minutely-table td:nth-child(n+2) {
+        text-align: right;
       }
 
       .minutely-table thead th {

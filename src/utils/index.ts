@@ -12,6 +12,21 @@ export function add(a: number, b: number): number {
   return a + b;
 }
 
+/**
+ * Builds a numeric sequence from start to stop using a fixed interval.
+ *
+ * @param start Inclusive starting value.
+ * @param stop Exclusive ending value.
+ * @param step Increment between each value.
+ * @returns Array of evenly spaced numeric values.
+ */
+export function range(start: number, stop: number, step: number): number[] {
+  return Array.from(
+    { length: (stop - start) / step },
+    (_, i) => start + i * step,
+  );
+}
+
 export interface LocationDisplayInput {
   latitude: number;
   longitude: number;

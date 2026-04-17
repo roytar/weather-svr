@@ -1,6 +1,5 @@
-import { fetchWeatherApi } from "openmeteo";
 import nodeGeocoder from "node-geocoder";
-import { find as tzFind } from "geo-tz/now";
+import { find as tzFind } from "geo-tz/dist/find-now";
 import { parseBoundingBoxInput, parseLatLonInput, wmoToOpenWeatherIcon, } from "../utils/index.js";
 const geocoder = nodeGeocoder({
     provider: "openstreetmap",
@@ -28,10 +27,17 @@ function hasStreetAddressInput(address) {
  * @param step Increment between each value.
  * @returns Array of evenly spaced numeric values.
  */
-const range = (start, stop, step) => Array.from({ length: (stop - start) / step }, (_, i) => start + i * step);
 export class WeatherService {
     constructor(log) {
         this.log = log;
+        const providerName = process.env.WEATHER_PROVIDER?.trim() || "openmeteo";
+        const normalizedProviderName = providerName || "openmeteo";
+        if (!/^[a-zA-Z0-9_-]+$/.test(normalizedProviderName)) {
+            throw new Error(`Invalid weather provider name: ${normalizedProviderName}`);
+        }
+        const providerPath = `./weather-providers/${normalizedProviderName}.js`;
+        this.providerPromise = import(providerPath);
+        this.log?.info({ provider: normalizedProviderName, providerPath }, "initialized weather provider");
     }
     /**
      * Converts a free-form address, ZIP code, `lat, lon`, or bounding-box input into coordinates and location metadata.
@@ -177,7 +183,7 @@ export class WeatherService {
         }
     }
     /**
-     * Retrieves weather data from Open-Meteo for a set of coordinates.
+     * Retrieves weather data from the configured provider for a set of coordinates.
      *
      * @param latitude Latitude coordinate in decimal degrees.
      * @param longitude Longitude coordinate in decimal degrees.
@@ -186,187 +192,8 @@ export class WeatherService {
      */
     async getWeatherData(latitude, longitude, options = {}) {
         this.log?.info({ latitude, longitude, options }, "fetching weather data");
-        const tzTimezone = tzFind(latitude, longitude);
-        const temperatureUnit = options.temperatureUnit === "celsius" ? "celsius" : "fahrenheit";
-        const unitSystem = options.unitSystem === "metric" ? "metric" : "english";
-        const windSpeedUnit = unitSystem === "metric" ? "kmh" : "mph";
-        const precipitationUnit = unitSystem === "metric" ? "mm" : "inch";
-        const convertPrecipValue = (value) => unitSystem === "metric" ? Number((value / 10).toFixed(3)) : value;
-        const convertPrecipArray = (values) => values
-            ? Float32Array.from(values, (value) => unitSystem === "metric" ? Number((value / 10).toFixed(3)) : value)
-            : new Float32Array();
-        const convertNullablePrecipArray = (values) => values
-            ? Float32Array.from(values, (value) => unitSystem === "metric" ? Number((value / 10).toFixed(3)) : value)
-            : null;
-        const convertVisibilityArray = (values) => values
-            ? Float32Array.from(values, (value) => unitSystem === "metric"
-                ? value
-                : Number((value * 3.28084).toFixed(1)))
-            : null;
-        const latitudeValues = options.boundingBox
-            ? [
-                latitude,
-                options.boundingBox.lowerLeft.latitude,
-                options.boundingBox.upperRight.latitude,
-            ]
-            : [latitude];
-        const longitudeValues = options.boundingBox
-            ? [
-                longitude,
-                options.boundingBox.lowerLeft.longitude,
-                options.boundingBox.upperRight.longitude,
-            ]
-            : [longitude];
-        const params = {
-            latitude: latitudeValues,
-            longitude: longitudeValues,
-            wind_speed_unit: windSpeedUnit,
-            temperature_unit: temperatureUnit,
-            precipitation_unit: precipitationUnit,
-            timezone: tzTimezone,
-            current: [
-                "weather_code",
-                "wind_speed_10m",
-                "wind_direction_10m",
-                "temperature_2m",
-                "relative_humidity_2m",
-                "precipitation",
-                "rain",
-                "showers",
-                "snowfall",
-            ],
-            hourly: [
-                "temperature_2m",
-                "precipitation",
-                "rain",
-                "snowfall",
-                "wind_speed_10m",
-                "wind_direction_10m",
-                "weather_code",
-                "precipitation_probability",
-            ],
-            daily: [
-                "apparent_temperature_max",
-                "sunrise",
-                "sunset",
-                "weather_code",
-                "temperature_2m_max",
-                "temperature_2m_min",
-                "wind_speed_10m_max",
-                "wind_gusts_10m_max",
-                "precipitation_probability_max",
-            ],
-        };
-        if (options.includeMinutely15) {
-            params.minutely_15 = [
-                "temperature_2m",
-                "rain",
-                "weather_code",
-                "visibility",
-                "sunshine_duration",
-            ];
-        }
-        if (options.startDate && options.endDate) {
-            params.start_date = options.startDate;
-            params.end_date = options.endDate;
-            options.forecastDays = 1;
-        }
-        else if (options.forecastDays && options.forecastDays > 0) {
-            params.forecast_days =
-                options.forecastDays;
-        }
-        const url = "https://api.open-meteo.com/v1/forecast";
-        let responses;
-        try {
-            responses = await fetchWeatherApi(url, params);
-        }
-        catch (err) {
-            this.log?.error({ latitude, longitude, options, err }, "open-meteo weather api request failed");
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            const wrappedError = new Error(`Weather API request failed: ${errorMessage}`);
-            wrappedError.cause = err;
-            throw wrappedError;
-        }
-        const response = responses[0];
-        const timezone = response.timezone();
-        this.log?.info({
-            latitude,
-            longitude,
-            boundingBox: options.boundingBox,
-            requestedCoordinateCount: responses.length,
-            timezone,
-            includeMinutely15: Boolean(options.includeMinutely15),
-        }, "Open-meteoweather data fetched");
-        const current = response.current();
-        const hourly = response.hourly();
-        const daily = response.daily();
-        const minutely15 = response.minutely15();
-        // Define Int64 variables so they can be processed accordingly
-        const sunrise = daily.variables(1);
-        const sunset = daily.variables(2);
-        // Process weather data
-        const weatherData = {
-            current: {
-                time: new Date(Number(current.time()) * 1000),
-                weather_code: current.variables(0).value(),
-                wind_speed_10m: current.variables(1).value(),
-                wind_direction_10m: current.variables(2).value(),
-                temperature_2m: current.variables(3).value(),
-                relative_humidity_2m: current.variables(4).value(),
-                precipitation: convertPrecipValue(current.variables(5).value()),
-                rain: convertPrecipValue(current.variables(6).value()),
-                showers: convertPrecipValue(current.variables(7).value()),
-                snowfall: convertPrecipValue(current.variables(8).value()),
-            },
-            hourly: {
-                time: range(Number(hourly.time()), Number(hourly.timeEnd()), hourly.interval()).map((t) => new Date(t * 1000)),
-                temperature: hourly.variables(0).valuesArray(),
-                precipitation: convertPrecipArray(hourly.variables(1).valuesArray()),
-                rain: convertPrecipArray(hourly.variables(2).valuesArray()),
-                snowfall: convertPrecipArray(hourly.variables(3).valuesArray()),
-                windSpeed: hourly.variables(4).valuesArray(),
-                windDirection: hourly.variables(5).valuesArray(),
-                weatherCode: hourly.variables(6).valuesArray(),
-                precipitation_probability: hourly.variables(7).valuesArray() || new Float32Array(),
-            },
-            daily: {
-                time: Array.from({
-                    length: (Number(daily.timeEnd()) - Number(daily.time())) /
-                        daily.interval(),
-                }, (_, i) => new Date((Number(daily.time()) + i * daily.interval()) * 1000)),
-                apparent_temperature_max: daily.variables(0).valuesArray() || new Float32Array(),
-                sunrise: [...Array(sunrise.valuesInt64Length())].map((_, i) => new Date(Number(sunrise.valuesInt64(i)) * 1000)),
-                sunset: [...Array(sunset.valuesInt64Length())].map((_, i) => new Date(Number(sunset.valuesInt64(i)) * 1000)),
-                weather_code: daily.variables(3).valuesArray() || new Float32Array(),
-                temperature_2m_max: daily.variables(4).valuesArray(),
-                temperature_2m_min: daily.variables(5).valuesArray(),
-                wind_speed_10m_max: daily.variables(6).valuesArray(),
-                wind_gusts_10m_max: daily.variables(7).valuesArray(),
-                precipitation_probability_max: daily.variables(8).valuesArray() || new Float32Array(),
-            },
-            minutely15: minutely15
-                ? {
-                    time: Array.from({
-                        length: (Number(minutely15.timeEnd()) - Number(minutely15.time())) /
-                            minutely15.interval(),
-                    }, (_, i) => new Date((Number(minutely15.time()) + i * minutely15.interval()) *
-                        1000)),
-                    temperature_2m: minutely15.variables(0)?.valuesArray() ?? null,
-                    rain: convertNullablePrecipArray(minutely15.variables(1)?.valuesArray()),
-                    weather_code: minutely15.variables(2)?.valuesArray() ?? null,
-                    visibility: convertVisibilityArray(minutely15.variables(3)?.valuesArray()),
-                    sunshine_duration: minutely15.variables(4)?.valuesArray() ?? null,
-                }
-                : {
-                    time: [],
-                    temperature_2m: null,
-                    rain: null,
-                    weather_code: null,
-                    visibility: null,
-                    sunshine_duration: null,
-                },
-        };
-        return weatherData;
+        const provider = await this.providerPromise;
+        return provider.fetchWeatherData(this.log, latitude, longitude, options);
     }
     /**
      * Formats weather data as a text report suitable for CLI-style output.

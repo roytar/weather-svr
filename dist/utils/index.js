@@ -11,6 +11,17 @@ export function add(a, b) {
     return a + b;
 }
 /**
+ * Builds a numeric sequence from start to stop using a fixed interval.
+ *
+ * @param start Inclusive starting value.
+ * @param stop Exclusive ending value.
+ * @param step Increment between each value.
+ * @returns Array of evenly spaced numeric values.
+ */
+export function range(start, stop, step) {
+    return Array.from({ length: (stop - start) / step }, (_, i) => start + i * step);
+}
+/**
  * Formats a Date into short 12-hour America/New_York time with AM/PM.
  *
  * @param date Date instance to format.
